@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+- Use declarative TSX.
+- Use Prettier for consistent code formatting.

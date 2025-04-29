@@ -1,21 +1,23 @@
 {
   "expo": {
-    "name": "datadget",
+    "name": "Datadget",
     "slug": "datadget",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.datadget"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.datadget"
     },
     "web": {
       "bundler": "metro",
@@ -30,12 +32,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#3787e2"
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-secure-store",
+      "@bugsnag/plugin-expo-eas-sourcemaps"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "bugsnag": {
+        "apiKey": "d875c79e1469523af898077a3e5c3099"
+      }
     }
   }
 }

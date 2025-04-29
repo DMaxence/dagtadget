@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+- Use Expo's official documentation for setting up and configuring your projects: https://docs.expo.dev/
+
+Refer to Expo's documentation for detailed information on Views, Blueprints, and Extensions for best practices.

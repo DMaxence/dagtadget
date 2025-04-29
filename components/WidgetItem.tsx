@@ -1,0 +1,370 @@
+import { Ionicons } from "@expo/vector-icons";
+import { observer, useObservable } from "@legendapp/state/react";
+import { router } from "expo-router";
+import React, { useEffect } from "react";
+import {
+  ActionSheetIOS,
+  Alert,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { ContextMenuButton } from "react-native-ios-context-menu";
+
+import { ThemedText } from "@/components/ThemedText";
+import { t } from "@/constants/i18n";
+import { widgetActions, widgetState } from "@/state/widget";
+import { Widget } from "@/types/widget";
+import { COLOR_OPTIONS } from "./ColorSelector";
+
+interface WidgetItemProps {
+  widget: Widget;
+  onPress?: () => void;
+}
+
+export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
+  const refreshing = useObservable(false);
+  const textColor = "#ffffff";
+  const secondaryTextColor = "rgba(255, 255, 255, 0.8)";
+
+  // Get a consistent color for this widget based on its ID
+  const getWidgetColor = () => {
+    // If widget has a color property, use it
+    if (widget.color) {
+      return widget.color;
+    }
+
+    // Otherwise fall back to the color algorithm
+    const hashSum = widget.id
+      .split("")
+      .reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return COLOR_OPTIONS[hashSum % COLOR_OPTIONS.length];
+  };
+
+  // We only observe changes to this one widget
+  const widgetObs = widgetState.widgets[widget.id];
+
+  // Fetch data when component mounts if needed
+  useEffect(() => {
+    if (!widget.dataSource.lastValue) {
+      fetchData();
+    }
+  }, []);
+
+  const fetchData = async () => {
+    console.log("FETCHING DATA for widget", widget.id);
+    refreshing.set(true);
+    try {
+      await widgetActions.fetchWidgetData(widget.id);
+      console.log("DATA FETCHED for widget", widget.id);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      refreshing.set(false);
+    }
+  };
+
+  // Format the last fetched timestamp in a relative format (e.g., "5m ago")
+  const getLastUpdated = () => {
+    if (!widget.dataSource.lastFetched) {
+      return t("common.never");
+    }
+
+    const now = new Date();
+    const lastFetched = new Date(widget.dataSource.lastFetched);
+    const diffInSeconds = Math.floor(
+      (now.getTime() - lastFetched.getTime()) / 1000
+    );
+
+    if (diffInSeconds < 60) {
+      return `Updated ${diffInSeconds}s ago`;
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `Updated ${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `Updated ${hours}h ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `Updated ${days}d ago`;
+    }
+  };
+
+  // Get icon for widget based on its name or data
+  const getWidgetIcon = () => {
+    // Simple algorithm to pick an icon based on widget name
+    const name = widget.name.toLowerCase();
+
+    if (name.includes("stock") || name.includes("price")) {
+      return "trending-up-outline";
+    } else if (name.includes("weather") || name.includes("temperature")) {
+      return "cloud-outline";
+    } else if (name.includes("time") || name.includes("date")) {
+      return "calendar-outline";
+    } else if (name.includes("bitcoin") || name.includes("crypto")) {
+      return "logo-bitcoin";
+    } else {
+      return "stats-chart-outline";
+    }
+  };
+
+  const handleOptionsPress = (event: any) => {
+    event.stopPropagation();
+
+    if (Platform.OS === "ios") {
+      // Use ActionSheetIOS on iOS
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancel", "Refresh", "Edit", "Delete"],
+          destructiveButtonIndex: 3,
+          cancelButtonIndex: 0,
+          userInterfaceStyle: "light",
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            // Refresh
+            fetchData();
+          } else if (buttonIndex === 2) {
+            // Edit
+            router.push({
+              pathname: "/edit-widget/[id]",
+              params: { id: widget.id },
+            });
+          } else if (buttonIndex === 3) {
+            // Delete
+            confirmDelete();
+          }
+        }
+      );
+    } else {
+      // Use Alert on Android
+      Alert.alert(
+        "Widget Options",
+        "Choose an action",
+        [
+          {
+            text: "Refresh",
+            onPress: () => fetchData(),
+          },
+          {
+            text: "Edit",
+            onPress: () =>
+              router.push({
+                pathname: "/edit-widget/[id]",
+                params: { id: widget.id },
+              }),
+          },
+          {
+            text: "Delete",
+            onPress: () => confirmDelete(),
+            style: "destructive",
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Widget",
+      `Are you sure you want to delete "${widget.name}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            widgetActions.deleteWidget(widget.id);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Directly access current widget data from the observable state
+  const currentWidget = widgetObs.get();
+  const isRefreshing = refreshing.get();
+  const widgetColor = getWidgetColor();
+
+  if (!currentWidget) {
+    return null;
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.container, { backgroundColor: widgetColor }]}
+      activeOpacity={0.7}
+    >
+      <View style={styles.widgetContent}>
+        {/* <View style={styles.iconContainer}>
+            <Ionicons name={getWidgetIcon()} size={26} color="#fff" />
+          </View> */}
+
+        <ThemedText style={[styles.name, { color: textColor }]}>
+          {currentWidget.name}
+        </ThemedText>
+
+        {Platform.OS === "android" ? (
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={handleOptionsPress}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={textColor} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.menuButton}>
+            <ContextMenuButton
+              isMenuPrimaryAction={true}
+              menuConfig={{
+                menuTitle: currentWidget.name,
+                menuItems: [
+                  {
+                    actionKey: "refresh",
+                    actionTitle: "Refresh",
+                    icon: {
+                      type: "IMAGE_SYSTEM",
+                      imageValue: {
+                        systemName: "arrow.clockwise",
+                      },
+                    },
+                  },
+                  {
+                    actionKey: "edit",
+                    actionTitle: "Edit",
+                    icon: {
+                      type: "IMAGE_SYSTEM",
+                      imageValue: {
+                        systemName: "pencil",
+                      },
+                    },
+                  },
+                  {
+                    actionKey: "delete",
+                    actionTitle: "Delete",
+                    menuAttributes: ["destructive"],
+                    icon: {
+                      type: "IMAGE_SYSTEM",
+                      imageValue: {
+                        systemName: "trash",
+                      },
+                    },
+                  },
+                ],
+              }}
+              onPress={(event: any) => {
+                event.stopPropagation();
+              }}
+              onPressMenuItem={({ nativeEvent }: { nativeEvent: any }) => {
+                // nativeEvent.stopPropagation();
+                switch (nativeEvent.actionKey) {
+                  case "refresh":
+                    fetchData();
+                    break;
+                  case "edit":
+                    router.push({
+                      pathname: "/edit-widget/[id]",
+                      params: { id: widget.id },
+                    });
+                    break;
+                  case "delete":
+                    confirmDelete();
+                    break;
+                }
+              }}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color={textColor} />
+            </ContextMenuButton>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.valueContainer}>
+        <ThemedText
+          style={[styles.value, { color: textColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.7}
+        >
+          {currentWidget.prefix || ""}
+          {currentWidget.dataSource.lastValue || "--"}
+          {currentWidget.suffix || ""}
+        </ThemedText>
+        <ThemedText style={[styles.updatedAt, { color: secondaryTextColor }]}>
+          {getLastUpdated()}
+        </ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: {
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 16,
+    marginHorizontal: 2,
+    width: "47%",
+    height: 180,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  widgetContent: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  iconContainer: {
+    marginBottom: 12,
+  },
+  name: {
+    flex: 1,
+    fontWeight: "bold",
+    fontSize: 22,
+    textAlign: "left",
+  },
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.9,
+  },
+  menuButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  valueContainer: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  value: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 8,
+    paddingTop: 12,
+  },
+  updatedAt: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+});
