@@ -5,5 +5,5 @@ alwaysApply: false
 ---
 - Use React Context and useReducer for managing global state.
 - Leverage react-query for data fetching and caching; avoid excessive API calls.
-- For complex state management, consider using Zustand.
+- For complex state management, consider using @legendapp/state or Zustand.
 - Handle URL search parameters using libraries like expo-linking.

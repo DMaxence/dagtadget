@@ -10,7 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.datadget"
+      "appleTeamId": "85344DK5P3",
+      "bundleIdentifier": "com.datadget",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.datadget"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -37,7 +43,10 @@
       ],
       "expo-localization",
       "expo-secure-store",
-      "@bugsnag/plugin-expo-eas-sourcemaps"
+      "@bugsnag/plugin-expo-eas-sourcemaps",
+      "expo-font",
+      "expo-web-browser",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true

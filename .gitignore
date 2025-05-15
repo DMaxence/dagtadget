@@ -38,5 +38,5 @@ yarn-error.*
 app-example
 
 # expo native files
-android/
-ios/
+/android
+/ios

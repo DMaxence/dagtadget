@@ -6,6 +6,7 @@ import Storage from "expo-sqlite/kv-store";
 
 import { refreshIntervalMs, Widget } from "@/types/widget";
 import { parseJsonPath } from "@/utils/jsonPath";
+import { syncWidgetWithExtension } from "@/utils/widgetUtils";
 
 // Initial state
 interface WidgetState {
@@ -144,6 +145,9 @@ export const widgetActions = {
       widgetState.widgets[id].dataSource.lastFetched.set(Date.now());
       widgetState.widgets[id].dataSource.lastValue.set(String(value));
       widgetState.widgets[id].dataSource.lastError.set(undefined);
+
+      // Share the widget data with the widget extension
+      syncWidgetWithExtension(widget, String(value));
 
       return value;
     } catch (error) {
