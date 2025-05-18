@@ -16,6 +16,9 @@
         "com.apple.security.application-groups": [
           "group.com.datadget"
         ]
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -46,7 +49,14 @@
       "@bugsnag/plugin-expo-eas-sourcemaps",
       "expo-font",
       "expo-web-browser",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "expo-background-task",
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -54,6 +64,27 @@
     "extra": {
       "bugsnag": {
         "apiKey": "d875c79e1469523af898077a3e5c3099"
+      },
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "bundleIdentifier": "com.datadget.widget",
+                  "targetName": "widget",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.datadget"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "49859b60-0b6f-46af-9212-07f89018df18"
       }
     }
   }

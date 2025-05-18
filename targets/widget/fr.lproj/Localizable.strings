@@ -1,0 +1,5 @@
+/* Widget strings */
+"widget.loading" = "Chargement des données du widget...";
+"widget.noSelection" = "Aucun Widget Sélectionné";
+"widget.configureInstructions" = "Veuillez sélectionner un widget dans la configuration du widget";
+"widget.error" = "Erreur de récupération des données"; 

@@ -1,6 +1,6 @@
 import { ExtensionStorage } from "@bacons/apple-targets";
 import config from "../app.json";
-import { Widget } from "../types/widget";
+import { Widget, refreshIntervalMs, WidgetRefreshInterval } from "../types/widget";
 
 /**
  * Formats a value with an optional prefix and suffix
@@ -57,10 +57,15 @@ export function shareWidgetData(
  */
 export function syncWidgetWithExtension(widget: Widget, value?: string) {
   // Convert our widget format to the one expected by the widget extension
+  const intervalMilliseconds = refreshIntervalMs[widget.refreshInterval as WidgetRefreshInterval];
+
   const widgetData: Record<string, string | number> = {
     id: widget.id,
     name: widget.name,
     lastFetched: Date.now(),
+    // Ensure refreshIntervalMs is always a number. 
+    // It's derived from WidgetRefreshInterval which should always be valid.
+    refreshIntervalMs: intervalMilliseconds,
   };
 
   // Only add optional fields if they exist
@@ -75,6 +80,21 @@ export function syncWidgetWithExtension(widget: Widget, value?: string) {
 
   // Share with widget extension
   shareWidgetData(widget.id, widgetData);
+}
+
+/**
+ * Removes widget data from the widget extension's shared storage
+ * @param widgetId The id of the widget to remove
+ */
+export function removeWidgetDataFromExtension(widgetId: string) {
+  const storage = new ExtensionStorage(
+    config.expo.ios.entitlements["com.apple.security.application-groups"][0]
+  );
+  storage.remove(widgetId);
+
+  // Reload all widget timelines and configurations.
+  // This should prompt the WidgetQuery to update its list.
+  ExtensionStorage.reloadWidget(); 
 }
 
 /**

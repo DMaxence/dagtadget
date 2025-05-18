@@ -4,9 +4,16 @@ import { configureSynced, syncObservable } from "@legendapp/state/sync";
 import { randomUUID } from "expo-crypto";
 import Storage from "expo-sqlite/kv-store";
 
-import { refreshIntervalMs, Widget } from "@/types/widget";
+import {
+  refreshIntervalMs,
+  Widget,
+  WidgetRefreshInterval,
+} from "@/types/widget";
 import { parseJsonPath } from "@/utils/jsonPath";
-import { syncWidgetWithExtension } from "@/utils/widgetUtils";
+import {
+  syncWidgetWithExtension,
+  removeWidgetDataFromExtension,
+} from "@/utils/widgetUtils";
 
 // Initial state
 interface WidgetState {
@@ -37,12 +44,6 @@ interface GlobalWithWidgetIntervals {
 }
 
 const globalWithWidgetIntervals = global as GlobalWithWidgetIntervals;
-
-// Setup persistence for the widget state
-export const loadWidgetsFromStorage = async (): Promise<void> => {
-  // This will be handled by the syncObservable call
-  return Promise.resolve();
-};
 
 // Configure persistence for widgets
 syncObservable(
@@ -80,12 +81,37 @@ export const widgetActions = {
     id: string,
     updates: Partial<Omit<Widget, "id" | "createdAt" | "updatedAt">>
   ) => {
-    if (widgetState.widgets[id].peek()) {
-      widgetState.widgets[id].updatedAt.set(Date.now());
+    const widgetObservable = widgetState.widgets[id];
+    if (widgetObservable.peek()) {
+      widgetObservable.updatedAt.set(Date.now());
+      let settingsChanged = false;
       Object.entries(updates).forEach(([key, value]) => {
         // @ts-ignore - Dynamic property assignment
-        widgetState.widgets[id][key].set(value);
+        widgetObservable[key].set(value);
+        if (key === 'refreshInterval' || key === 'name' || key === 'prefix' || key === 'suffix' || key === 'color' || key === 'dataSource') {
+          settingsChanged = true;
+        }
       });
+
+      const currentWidget = widgetObservable.peek();
+      if (currentWidget) {
+        // If settings that affect display or refresh schedule changed, sync with extension
+        if (settingsChanged) {
+          syncWidgetWithExtension(currentWidget, currentWidget.dataSource.lastValue);
+        }
+
+        // If data source URL or headers changed, we should probably re-fetch data immediately.
+        // For this example, we assume fetchWidgetData will be called separately if needed after URL/header changes.
+        // If just the interval or other display properties changed, re-fetching might not be desired immediately,
+        // but syncing with the extension (above) and rescheduling foreground refreshes (below) is important.
+      }
+
+      // If refreshInterval changed, the foreground schedules need updating.
+      // More broadly, if any part of the widget that scheduleRefreshes depends on changes, it should be called.
+      // For simplicity, calling it if settingsChanged is true (which includes refreshInterval).
+      if (settingsChanged) {
+        widgetActions.scheduleRefreshes();
+      }
       return true;
     }
     return false;
@@ -95,6 +121,7 @@ export const widgetActions = {
   deleteWidget: (id: string) => {
     if (widgetState.widgets[id].peek()) {
       widgetState.widgets[id].delete();
+      removeWidgetDataFromExtension(id);
       return true;
     }
     return false;
@@ -103,7 +130,6 @@ export const widgetActions = {
   // Fetch data for a widget
   fetchWidgetData: async (id: string) => {
     const widget = widgetState.widgets[id].peek();
-    console.log(`widget ${id}:`, widget);
     if (!widget) return;
 
     try {
@@ -132,14 +158,12 @@ export const widgetActions = {
       }
 
       const data = await response.json();
-      console.log(`data ${id}:`, data);
 
       // Extract the value using the jsonPath if specified
       let value = widget.dataSource.jsonPath
         ? parseJsonPath(data, widget.dataSource.jsonPath)
         : data;
 
-      console.log(`value ${id}:`, value);
 
       // Update widget with fetched data
       widgetState.widgets[id].dataSource.lastFetched.set(Date.now());
@@ -184,4 +208,9 @@ export const widgetActions = {
       }
     });
   },
+};
+
+// Function to get all widgets (for background task)
+export const getAllWidgets = (): Record<string, Widget> => {
+  return widgetState.widgets.peek();
 };

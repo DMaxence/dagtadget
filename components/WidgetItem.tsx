@@ -65,29 +65,34 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
     }
   };
 
-  // Format the last fetched timestamp in a relative format (e.g., "5m ago")
+  // Format the last fetched timestamp in a localized format (e.g., "16 mai 2025 à 00:38")
   const getLastUpdated = () => {
     if (!widget.dataSource.lastFetched) {
       return t("common.never");
     }
 
-    const now = new Date();
     const lastFetched = new Date(widget.dataSource.lastFetched);
-    const diffInSeconds = Math.floor(
-      (now.getTime() - lastFetched.getTime()) / 1000
-    );
-
-    if (diffInSeconds < 60) {
-      return `Updated ${diffInSeconds}s ago`;
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `Updated ${minutes}m ago`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `Updated ${hours}h ago`;
-    } else {
-      const days = Math.floor(diffInSeconds / 86400);
-      return `Updated ${days}d ago`;
+    
+    // Use Intl.DateTimeFormat for localized date formatting
+    try {
+      // Get device locale from the system
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+      return new Intl.DateTimeFormat(locale, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(lastFetched);
+    } catch (error) {
+      // Fallback formatting if Intl API fails
+      const month = String(lastFetched.getMonth() + 1).padStart(2, '0');
+      const day = String(lastFetched.getDate()).padStart(2, '0');
+      const year = lastFetched.getFullYear();
+      const hours = String(lastFetched.getHours()).padStart(2, '0');
+      const minutes = String(lastFetched.getMinutes()).padStart(2, '0');
+      
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
     }
   };
 
@@ -196,6 +201,31 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
   const isRefreshing = refreshing.get();
   const widgetColor = getWidgetColor();
 
+  // Format value based on locale
+  const formatValue = (value: string | undefined) => {
+    if (!value || value.trim() === "") return "--";
+    
+    // Try to convert the value to a number for formatting
+    const numericValue = parseFloat(value.replace(/,/g, '.'));
+    
+    if (!isNaN(numericValue)) {
+      try {
+        // Get the device locale
+        const locale = Intl.NumberFormat().resolvedOptions().locale;
+        return new Intl.NumberFormat(locale, { 
+          maximumFractionDigits: value.includes('.') ? 
+            value.split('.')[1]?.length || 2 : 2
+        }).format(numericValue);
+      } catch (e) {
+        // Fallback to original value if formatting fails
+        return value;
+      }
+    }
+    
+    // If it's not a number, return the original value
+    return value;
+  };
+
   if (!currentWidget) {
     return null;
   }
@@ -297,7 +327,7 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
           minimumFontScale={0.7}
         >
           {currentWidget.prefix || ""}
-          {currentWidget.dataSource.lastValue || "--"}
+          {formatValue(currentWidget.dataSource.lastValue)}
           {currentWidget.suffix || ""}
         </ThemedText>
         <ThemedText style={[styles.updatedAt, { color: secondaryTextColor }]}>

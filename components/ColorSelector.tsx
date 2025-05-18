@@ -80,7 +80,6 @@ export function ColorSelector({ selectedColor, onSelectColor }: ColorSelectorPro
         ))}
       </ScrollView>
       
-      <View style={styles.selectionIndicator} />
     </View>
   );
 }

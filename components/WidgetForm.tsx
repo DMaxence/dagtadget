@@ -396,10 +396,8 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       keyboardType?: "default" | "url",
       autoCapitalize?: "none" | "sentences"
     ) => (
-      <ThemedView style={styles.formGroup}>
-        <ThemedText style={[styles.label, { color: labelColor }]}>
-          {label}
-        </ThemedText>
+      <View style={styles.formGroup}>
+        <ThemedText style={[styles.label]}>{label}</ThemedText>
         <View style={styles.inputWrapper}>
           <TextInput
             style={[
@@ -418,11 +416,11 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
             autoCapitalize={autoCapitalize || "sentences"}
           />
         </View>
-      </ThemedView>
+      </View>
     );
 
     const renderDataSourceField = () => (
-      <ThemedView style={styles.formGroup}>
+      <View style={styles.formGroup}>
         <ThemedText style={[styles.label, { color: labelColor }]}>
           {t("widget.create.dataSourceLabel")}
         </ThemedText>
@@ -512,11 +510,11 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
             </View>
           ))}
         </View>
-      </ThemedView>
+      </View>
     );
 
     const renderJsonPathSelector = () => (
-      <ThemedView style={styles.formGroup}>
+      <View style={styles.formGroup}>
         <ThemedText style={[styles.label, { color: labelColor }]}>
           Data Selection
         </ThemedText>
@@ -530,7 +528,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
           onPathSelect={handlePathSelect}
           isLoading={isLoadingApiData}
         />
-      </ThemedView>
+      </View>
     );
 
     const renderWidgetPreview = () => (
@@ -586,12 +584,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       >
         {renderWidgetPreview()}
 
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: cardBackgroundColor, borderColor },
-          ]}
-        >
+        <View>
           {renderFormField(
             t("widget.create.nameLabel"),
             name,
@@ -619,7 +612,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
 
           {apiResponseData && renderJsonPathSelector()}
 
-          <ThemedView style={styles.formGroup}>
+          <View style={styles.formGroup} >
             <ThemedText style={[styles.label, { color: labelColor }]}>
               {t("widget.create.refreshIntervalLabel")}
             </ThemedText>
@@ -672,8 +665,8 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                 />
               </Picker>
             </View>
-          </ThemedView>
-        </ThemedView>
+          </View>
+        </View>
 
         {mode === "edit" && (
           <TouchableOpacity

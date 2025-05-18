@@ -9,7 +9,6 @@ import { WidgetItem } from "@/components/WidgetItem";
 import { t } from "@/constants/i18n";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import {
-  loadWidgetsFromStorage,
   widgetActions,
   widgetList
 } from "@/state/widget";
@@ -28,12 +27,6 @@ const HomeScreen = observer(() => {
     "tint"
   );
 
-  // Load widgets from storage on mount
-  useEffect(() => {
-    loadWidgetsFromStorage().then(() => {
-      console.log("Widgets loaded:", widgets.length);
-    });
-  }, []);
 
   // Schedule widget refreshes whenever the widget list changes
   useEffect(() => {
@@ -96,6 +89,9 @@ const HomeScreen = observer(() => {
       columnWrapperStyle={styles.columnWrapper}
       contentContainerStyle={styles.list}
       ListEmptyComponent={renderEmptyState}
+      style={{
+        paddingTop: 16,
+      }}
     />
   );
 });
