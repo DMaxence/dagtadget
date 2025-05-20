@@ -1,17 +1,19 @@
 import { observer } from "@legendapp/state/react";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
-import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { WidgetItem } from "@/components/WidgetItem";
 import { t } from "@/constants/i18n";
 import { useThemeColor } from "@/hooks/useThemeColor";
-import {
-  widgetActions,
-  widgetList
-} from "@/state/widget";
+import { widgetActions, widgetList } from "@/state/widget";
 
 // Define a global interface to add the widget refresh intervals type
 declare global {
@@ -21,12 +23,12 @@ declare global {
 const HomeScreen = observer(() => {
   const widgets = widgetList.get();
   const { searchText } = useLocalSearchParams<{ searchText: string }>();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const accentColor = useThemeColor(
     { light: "#0070f3", dark: "#3694ff" },
     "tint"
   );
-
 
   // Schedule widget refreshes whenever the widget list changes
   useEffect(() => {
@@ -47,6 +49,24 @@ const HomeScreen = observer(() => {
     // @ts-ignore - This route will be created
     router.push("/create-widget");
   };
+
+  const onRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      // Assuming scheduleRefreshes might be async or returns a promise
+      // If not, the await keyword won't hurt but also won't do anything.
+      // If it has a callback or other mechanism for completion, that should be used.
+      console.log("onRefresh");
+      await widgetActions.refreshAllWidgets();
+    } catch (error) {
+      console.error("Failed to refresh widgets:", error);
+      // Optionally, handle the error (e.g., show a toast message)
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 750);
+    }
+  }, []);
 
   const onNavigateToWidget = (widgetId: string) => {
     // @ts-ignore - This route will be created
@@ -89,6 +109,9 @@ const HomeScreen = observer(() => {
       columnWrapperStyle={styles.columnWrapper}
       contentContainerStyle={styles.list}
       ListEmptyComponent={renderEmptyState}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+      }
       style={{
         paddingTop: 16,
       }}
