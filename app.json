@@ -2,7 +2,7 @@
   "expo": {
     "name": "Datadget",
     "slug": "datadget",
-    "version": "0.0.1",
+    "version": "0.0.10",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -46,15 +46,16 @@
       ],
       "expo-localization",
       "expo-secure-store",
-      "@bugsnag/plugin-expo-eas-sourcemaps",
       "expo-font",
       "expo-web-browser",
       "@bacons/apple-targets",
       "expo-background-task",
       [
-        "expo-dev-client",
+        "expo-build-properties",
         {
-          "launchMode": "most-recent"
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
         }
       ]
     ],

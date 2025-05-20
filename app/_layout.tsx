@@ -1,4 +1,3 @@
-import Bugsnag from "@bugsnag/expo";
 import {
   DarkTheme,
   DefaultTheme,
@@ -32,10 +31,10 @@ import { TouchableOpacity } from "react-native";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-Bugsnag.start({
-  enabledReleaseStages: ["production"],
-  releaseStage: __DEV__ ? "local" : "production",
-});
+// Bugsnag.start({
+//   enabledReleaseStages: ["production"],
+//   releaseStage: __DEV__ ? "local" : "production",
+// });
 
 const PostHogProvider = ({ children }: PropsWithChildren) => {
   return __DEV__ ? (
@@ -94,7 +93,6 @@ export default function RootLayout() {
           // Hide splash screen
           SplashScreen.hideAsync();
         });
-      Bugsnag.notify(new Error("Test error"));
     }
   }, [loaded]);
 
