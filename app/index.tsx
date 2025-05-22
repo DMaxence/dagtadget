@@ -105,8 +105,7 @@ const HomeScreen = observer(() => {
       renderItem={({ item }) => (
         <WidgetItem widget={item} onPress={() => onNavigateToWidget(item.id)} />
       )}
-      numColumns={2}
-      columnWrapperStyle={styles.columnWrapper}
+      numColumns={1}
       contentContainerStyle={styles.list}
       ListEmptyComponent={renderEmptyState}
       refreshControl={
@@ -174,10 +173,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 12,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-    marginHorizontal: 4,
   },
   emptyContainer: {
     flex: 1,

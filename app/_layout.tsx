@@ -124,17 +124,23 @@ export default function RootLayout() {
               },
               title: t("home.title"),
               contentStyle: { paddingTop: 0 },
-              // headerLeft: () => (
-              //   <TouchableOpacity onPress={resetNewUserFlag}>
-              //     <ThemedText>Reset new user flag</ThemedText>
-              //   </TouchableOpacity>
-              // ),
               headerRight: () => (
-                <TouchableOpacity onPress={() => router.push("/create-widget")}>
+                <TouchableOpacity
+                  onPress={() => router.push("/create-widget")}
+                  style={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 40,
+                    height: 40,
+                  }}
+                >
                   <Ionicons
                     name="add-circle-outline"
                     size={28}
                     color={colorScheme === "dark" ? "white" : "black"}
+                    style={{
+                      padding: 4,
+                    }}
                   />
                 </TouchableOpacity>
               ),
@@ -142,11 +148,19 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="create-widget"
-            options={{ headerShown: true, headerBackTitle: t("common.cancel") }}
+            options={{
+              headerShown: true,
+              headerBackTitle: t("common.cancel"),
+              presentation: "modal",
+            }}
           />
           <Stack.Screen
             name="edit-widget/[id]"
-            options={{ headerShown: true, headerBackTitle: t("common.cancel") }}
+            options={{
+              headerShown: true,
+              headerBackTitle: t("common.cancel"),
+              presentation: "modal",
+            }}
           />
           <Stack.Screen name="+not-found" />
         </Stack>

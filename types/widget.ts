@@ -54,7 +54,9 @@ export interface Widget {
   // Text to display after the data value
   suffix?: string;
   // Widget background color
-  color?: string;
+  color: string;
+  // Widget icon
+  icon?: string;
   // Data source configuration
   dataSource: WidgetDataSource;
   // Refresh interval

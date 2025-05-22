@@ -16,7 +16,7 @@ struct WidgetOption: AppEntity {
 }
 
 // Query to fetch available widgets
-struct WidgetQuery: EntityQuery {
+struct WidgetQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [WidgetOption] {
         let widgets = getWidgetsFromSharedContainer()
         return widgets.filter { identifiers.contains($0.id) }
@@ -25,14 +25,23 @@ struct WidgetQuery: EntityQuery {
     func suggestedEntities() async throws -> [WidgetOption] {
         return getWidgetsFromSharedContainer()
     }
+
+    func entities(matching string: String) async throws -> [WidgetOption] {
+        let allWidgets = getWidgetsFromSharedContainer()
+        if string.isEmpty {
+            // Return all or suggested entities if the search string is empty
+            return allWidgets 
+        }
+        return allWidgets.filter { $0.name.localizedCaseInsensitiveContains(string) }
+    }
     
     // Helper function to get available widgets from shared container
     private func getWidgetsFromSharedContainer() -> [WidgetOption] {
         guard let groupDefaults = UserDefaults(suiteName: "group.com.datadget") else {
             return []
         }
-        
-        // Get all keys in user defaults that might be widgets
+
+        // Get all keys in the UserDefaults and find widgets
         let allKeys = groupDefaults.dictionaryRepresentation().keys
         
         return allKeys.compactMap { key in
@@ -55,4 +64,4 @@ struct EnhancedWidgetConfigIntent: WidgetConfigurationIntent {
     // Widget selection parameter
     @Parameter(title: "Select Widget", description: "Choose which widget to display")
     var selectedWidget: WidgetOption?
-} 
+}

@@ -1,30 +1,30 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useObservable } from '@legendapp/state/react';
-import { TouchableOpacity } from 'react-native';
+import { useObservable } from "@legendapp/state/react";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { TouchableOpacity } from "react-native";
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { t } from '@/constants/i18n';
-import { widgetState } from '@/state/widget';
-import { Widget } from '@/types/widget';
-import { WidgetForm, WidgetFormHandles } from '@/components/WidgetForm';
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { WidgetForm, WidgetFormHandles } from "@/components/WidgetForm";
+import { t } from "@/constants/i18n";
+import { widgetState } from "@/state/widget";
+import { Widget } from "@/types/widget";
 
 export default function EditWidgetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const widget = useObservable(widgetState.widgets[id ?? '']);
+  const widget = useObservable(widgetState.widgets[id ?? ""]);
   const [initialValues, setInitialValues] = useState<Widget | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
-  
+
   // Create a reference to the WidgetForm's save function
   const formRef = useRef<WidgetFormHandles>(null);
-  
+
   const handleFormState = useCallback((saving: boolean, valid: boolean) => {
     setIsSaving(saving);
     setIsFormValid(valid);
   }, []);
-  
+
   // Load widget data
   useEffect(() => {
     if (widget.peek() && id) {
@@ -32,13 +32,15 @@ export default function EditWidgetScreen() {
       setInitialValues(widgetData);
     } else if (id) {
       // Widget not found, go back to home
-      router.replace('/');
+      router.replace("/");
     }
   }, [id]);
 
   if (!initialValues || !id) {
     return (
-      <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <ThemedView
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
         <ThemedText>Loading...</ThemedText>
       </ThemedView>
     );
@@ -46,43 +48,48 @@ export default function EditWidgetScreen() {
 
   return (
     <>
-      <Stack.Screen 
-        options={{ 
-          title: initialValues.name || t('widget.create.title'),
+      <Stack.Screen
+        options={{
+          title: initialValues.name || t("widget.create.title"),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()}>
+              <ThemedText>{t("common.cancel")}</ThemedText>
+            </TouchableOpacity>
+          ),
           headerRight: () => (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => formRef.current?.handleSave()}
               disabled={!isFormValid || isSaving}
             >
-              <ThemedText 
-                style={{ 
-                  fontSize: 16, 
-                  fontWeight: '600',
-                  opacity: (!isFormValid || isSaving) ? 0.5 : 1,
+              <ThemedText
+                style={{
+                  fontSize: 16,
+                  fontWeight: "600",
+                  opacity: !isFormValid || isSaving ? 0.5 : 1,
                 }}
               >
                 {isSaving ? t("common.saving") : t("common.save")}
               </ThemedText>
             </TouchableOpacity>
           ),
-        }} 
+        }}
       />
-      <WidgetForm 
-        mode="edit" 
+      <WidgetForm
+        mode="edit"
         widgetId={id}
         ref={formRef}
         onSave={handleFormState}
         initialValues={{
           name: initialValues.name,
-          prefix: initialValues.prefix || '',
-          suffix: initialValues.suffix || '',
+          prefix: initialValues.prefix || "",
+          suffix: initialValues.suffix || "",
           dataSourceUrl: initialValues.dataSource.url,
-          jsonPath: initialValues.dataSource.jsonPath || '',
+          jsonPath: initialValues.dataSource.jsonPath || "",
           refreshInterval: initialValues.refreshInterval,
-          color: initialValues.color || '',
+          color: initialValues.color || "",
           headers: initialValues.dataSource.headers || [],
         }}
       />
     </>
   );
-} 
+}

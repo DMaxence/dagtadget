@@ -72,26 +72,26 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
     }
 
     const lastFetched = new Date(widget.dataSource.lastFetched);
-    
+
     // Use Intl.DateTimeFormat for localized date formatting
     try {
       // Get device locale from the system
       const locale = Intl.DateTimeFormat().resolvedOptions().locale;
       return new Intl.DateTimeFormat(locale, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       }).format(lastFetched);
     } catch (error) {
       // Fallback formatting if Intl API fails
-      const month = String(lastFetched.getMonth() + 1).padStart(2, '0');
-      const day = String(lastFetched.getDate()).padStart(2, '0');
+      const month = String(lastFetched.getMonth() + 1).padStart(2, "0");
+      const day = String(lastFetched.getDate()).padStart(2, "0");
       const year = lastFetched.getFullYear();
-      const hours = String(lastFetched.getHours()).padStart(2, '0');
-      const minutes = String(lastFetched.getMinutes()).padStart(2, '0');
-      
+      const hours = String(lastFetched.getHours()).padStart(2, "0");
+      const minutes = String(lastFetched.getMinutes()).padStart(2, "0");
+
       return `${day}/${month}/${year} ${hours}:${minutes}`;
     }
   };
@@ -126,7 +126,7 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
           cancelButtonIndex: 0,
           userInterfaceStyle: "light",
         },
-        (buttonIndex) => {
+        (buttonIndex: number) => {
           if (buttonIndex === 1) {
             // Refresh
             fetchData();
@@ -204,24 +204,25 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
   // Format value based on locale
   const formatValue = (value: string | undefined) => {
     if (!value || value.trim() === "") return "--";
-    
+
     // Try to convert the value to a number for formatting
-    const numericValue = parseFloat(value.replace(/,/g, '.'));
-    
+    const numericValue = parseFloat(value.replace(/,/g, "."));
+
     if (!isNaN(numericValue)) {
       try {
         // Get the device locale
         const locale = Intl.NumberFormat().resolvedOptions().locale;
-        return new Intl.NumberFormat(locale, { 
-          maximumFractionDigits: value.includes('.') ? 
-            value.split('.')[1]?.length || 2 : 2
+        return new Intl.NumberFormat(locale, {
+          maximumFractionDigits: value.includes(".")
+            ? value.split(".")[1]?.length || 2
+            : 2,
         }).format(numericValue);
       } catch (e) {
         // Fallback to original value if formatting fails
         return value;
       }
     }
-    
+
     // If it's not a number, return the original value
     return value;
   };
@@ -236,15 +237,36 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
       style={[styles.container, { backgroundColor: widgetColor }]}
       activeOpacity={0.7}
     >
-      <View style={styles.widgetContent}>
-        {/* <View style={styles.iconContainer}>
-            <Ionicons name={getWidgetIcon()} size={26} color="#fff" />
-          </View> */}
-
-        <ThemedText style={[styles.name, { color: textColor }]}>
+      {/* Left section - Title and updated date */}
+      <View style={styles.leftSection}>
+        <ThemedText style={[styles.name, { color: textColor }]} type="subtitle">
           {currentWidget.name}
         </ThemedText>
+        <ThemedText
+          style={[styles.updatedAt, { color: secondaryTextColor }]}
+          type="small"
+        >
+          {getLastUpdated()}
+        </ThemedText>
+      </View>
 
+      {/* Middle section - Value */}
+      <View style={styles.middleSection}>
+        <ThemedText
+          style={[styles.value, { color: textColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.7}
+          type="subtitle"
+        >
+          {currentWidget.prefix || ""}
+          {formatValue(currentWidget.dataSource.lastValue)}
+          {currentWidget.suffix || ""}
+        </ThemedText>
+      </View>
+
+      {/* Right section - Menu button */}
+      <View style={styles.rightSection}>
         {Platform.OS === "android" ? (
           <TouchableOpacity
             style={styles.menuButton}
@@ -318,59 +340,59 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
           </TouchableOpacity>
         )}
       </View>
-
-      <View style={styles.valueContainer}>
-        <ThemedText
-          style={[styles.value, { color: textColor }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit={true}
-          minimumFontScale={0.7}
-        >
-          {currentWidget.prefix || ""}
-          {formatValue(currentWidget.dataSource.lastValue)}
-          {currentWidget.suffix || ""}
-        </ThemedText>
-        <ThemedText style={[styles.updatedAt, { color: secondaryTextColor }]}>
-          {getLastUpdated()}
-        </ThemedText>
-      </View>
     </TouchableOpacity>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: 12,
     marginHorizontal: 2,
-    width: "47%",
-    height: 180,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
       },
       android: {
-        elevation: 6,
+        elevation: 4,
       },
     }),
   },
-  widgetContent: {
+  leftSection: {
+    flex: 4,
+    flexDirection: "column",
+    justifyContent: "center",
+  },
+  middleSection: {
+    flex: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  rightSection: {
     flex: 1,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  widgetContent: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
   },
   iconContainer: {
     marginBottom: 12,
   },
   name: {
-    flex: 1,
     fontWeight: "bold",
-    fontSize: 22,
+    // fontSize: 22,
     textAlign: "left",
   },
   subtitle: {
@@ -384,17 +406,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   valueContainer: {
-    padding: 16,
-    paddingTop: 0,
+    flexDirection: "column",
+    alignItems: "flex-end",
+    justifyContent: "center",
   },
   value: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 8,
-    paddingTop: 12,
+    textAlign: "center",
   },
   updatedAt: {
-    fontSize: 12,
-    marginTop: 4,
+    textAlign: "left",
   },
 });

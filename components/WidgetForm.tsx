@@ -17,6 +17,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Switch,
 } from "react-native";
 
 import { ColorSelector } from "@/components/ColorSelector";
@@ -28,6 +29,7 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { widgetActions } from "@/state/widget";
 import { HeaderPair, WidgetRefreshInterval } from "@/types/widget";
 import { parseJsonPath } from "@/utils/jsonPath";
+import { IconSelector } from "@/components/IconSelector";
 
 // Default colors from widget item
 const DEFAULT_COLOR = "#34aadc"; // blue
@@ -45,6 +47,7 @@ interface WidgetFormProps {
     refreshInterval: WidgetRefreshInterval;
     color: string;
     value?: string;
+    icon?: string;
   };
   onDelete?: () => Promise<void>;
   onSave?: (isSaving: boolean, isValid: boolean) => void;
@@ -68,6 +71,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       initialValues?.headers || []
     );
     const [color, setColor] = useState(initialValues?.color || DEFAULT_COLOR);
+    const [icon, setIcon] = useState(initialValues?.icon || "star");
     const [refreshInterval, setRefreshInterval] =
       useState<WidgetRefreshInterval>(
         initialValues?.refreshInterval || WidgetRefreshInterval.HOUR_1
@@ -88,11 +92,11 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       "background"
     );
     const inputBackgroundColor = useThemeColor(
-      { light: "#f8f8f8", dark: "#1e1e1e" },
+      { light: "#f8f8f8", dark: "#2a2a2a" },
       "background"
     );
     const cardBackgroundColor = useThemeColor(
-      { light: "#ffffff", dark: "#1e1e1e" },
+      { light: "#ffffff", dark: "#2a2a2a" },
       "background"
     );
     const previewBackgroundColor = useThemeColor(
@@ -100,7 +104,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       "background"
     );
     const borderColor = useThemeColor(
-      { light: "#e0e0e0", dark: "#333333" },
+      { light: "#e0e0e0", dark: "#3a3a3a" },
       "background"
     );
     const accentColor = useThemeColor(
@@ -287,6 +291,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                   : undefined,
             },
             refreshInterval,
+            icon,
           });
 
           // Fetch initial data
@@ -307,6 +312,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                   : undefined,
             },
             refreshInterval,
+            icon,
           });
 
           // Fetch updated data
@@ -388,23 +394,32 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
     // Generate a random ID for headers
     const randomId = () => Math.random().toString(36).substring(2, 9);
 
+    // Updated form field renderer to match design in image
     const renderFormField = (
       label: string,
       value: string,
       onChangeText: (text: string) => void,
       placeholder: string,
       keyboardType?: "default" | "url",
-      autoCapitalize?: "none" | "sentences"
+      autoCapitalize?: "none" | "sentences",
+      icon?: string
     ) => (
       <View style={styles.formGroup}>
-        <ThemedText style={[styles.label]}>{label}</ThemedText>
+        <View style={styles.formFieldHeader}>
+          {icon && (
+            <View style={[styles.formFieldIcon, { backgroundColor: '#ff9500' }]}>
+              <Ionicons name={icon} size={20} color="#ffffff" />
+            </View>
+          )}
+          <ThemedText style={[styles.label, { color: textColor }]}>{label}</ThemedText>
+        </View>
         <View style={styles.inputWrapper}>
           <TextInput
             style={[
               styles.input,
               {
                 backgroundColor: inputBackgroundColor,
-                borderColor,
+                borderColor: 'transparent',
                 color: textColor,
               },
             ]}
@@ -565,6 +580,15 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
             )}
             <ThemedText style={styles.updatedAt}>
               {dataSourceUrl ? "Data source connected" : "No data source"}
+              {/* {icon && (
+                <View>
+                  <Ionicons
+                    name={icon}
+                    size={18}
+                    color="#ffffff"
+                  />
+                </View>
+              )} */}
             </ThemedText>
           </View>
         </ThemedView>
@@ -584,7 +608,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       >
         {renderWidgetPreview()}
 
-        <View>
+        <View style={styles.formContainer}>
           {renderFormField(
             t("widget.create.nameLabel"),
             name,
@@ -698,6 +722,9 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  formContainer: {
+    marginTop: 20,
+  },
   card: {
     borderRadius: 16,
     padding: 20,
@@ -719,12 +746,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   previewCard: {
-    // width: "50%",]
     aspectRatio: 1,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 20,
     minHeight: 180,
+    flexDirection: "column",
+    justifyContent: "space-between",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -740,6 +768,10 @@ const styles = StyleSheet.create({
   widgetContent: {
     flex: 1,
     padding: 16,
+    alignItems: "flex-start",
+  },
+  previewIcon: {
+    marginBottom: 8,
   },
   previewTitle: {
     fontWeight: "bold",
@@ -786,12 +818,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   formGroup: {
-    marginBottom: 24,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  formFieldHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  formFieldIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   label: {
-    marginBottom: 8,
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 16,
   },
   helpText: {
     fontSize: 12,
@@ -828,7 +874,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    borderWidth: 1,
+  },
+  toggleContainer: {
+    height: 52,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+  },
+  selectorContainer: {
+    height: 52,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  selectorValue: {
+    fontSize: 16,
+  },
+  switch: {
+    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
   },
   pathInputContainer: {
     flexDirection: "row",

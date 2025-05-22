@@ -73,6 +73,7 @@ export const widgetActions = {
       createdAt: now,
       updatedAt: now,
     });
+
     return id;
   },
 
@@ -88,7 +89,14 @@ export const widgetActions = {
       Object.entries(updates).forEach(([key, value]) => {
         // @ts-ignore - Dynamic property assignment
         widgetObservable[key].set(value);
-        if (key === 'refreshInterval' || key === 'name' || key === 'prefix' || key === 'suffix' || key === 'color' || key === 'dataSource') {
+        if (
+          key === "refreshInterval" ||
+          key === "name" ||
+          key === "prefix" ||
+          key === "suffix" ||
+          key === "color" ||
+          key === "dataSource"
+        ) {
           settingsChanged = true;
         }
       });
@@ -97,7 +105,10 @@ export const widgetActions = {
       if (currentWidget) {
         // If settings that affect display or refresh schedule changed, sync with extension
         if (settingsChanged) {
-          syncWidgetWithExtension(currentWidget, currentWidget.dataSource.lastValue);
+          syncWidgetWithExtension(
+            currentWidget,
+            currentWidget.dataSource.lastValue
+          );
         }
 
         // If data source URL or headers changed, we should probably re-fetch data immediately.
@@ -112,6 +123,7 @@ export const widgetActions = {
       if (settingsChanged) {
         widgetActions.scheduleRefreshes();
       }
+
       return true;
     }
     return false;
@@ -122,6 +134,7 @@ export const widgetActions = {
     if (widgetState.widgets[id].peek()) {
       widgetState.widgets[id].delete();
       removeWidgetDataFromExtension(id);
+
       return true;
     }
     return false;
@@ -163,7 +176,6 @@ export const widgetActions = {
       let value = widget.dataSource.jsonPath
         ? parseJsonPath(data, widget.dataSource.jsonPath)
         : data;
-
 
       // Update widget with fetched data
       widgetState.widgets[id].dataSource.lastFetched.set(Date.now());
@@ -207,6 +219,13 @@ export const widgetActions = {
         globalWithWidgetIntervals._widgetRefreshIntervals = [interval];
       }
     });
+  },
+
+  refreshAllWidgets: async () => {
+    const widgets = widgetState.widgets.peek();
+    for (const widget of Object.values(widgets)) {
+      await widgetActions.fetchWidgetData(widget.id);
+    }
   },
 };
 

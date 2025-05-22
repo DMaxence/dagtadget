@@ -28,6 +28,16 @@ export function formatValueWithPrefix(
 }
 
 /**
+ * Get the shared storage instance
+ * @returns The ExtensionStorage instance
+ */
+function getSharedStorage() {
+  return new ExtensionStorage(
+    config.expo.ios.entitlements["com.apple.security.application-groups"][0]
+  );
+}
+
+/**
  * Shares data with the widget
  * @param widgetId The id of the widget
  * @param data The data to share
@@ -41,13 +51,11 @@ export function shareWidgetData(
     | Array<Record<string, string | number>>
     | undefined
 ) {
-  const storage = new ExtensionStorage(
-    config.expo.ios.entitlements["com.apple.security.application-groups"][0]
-  );
+  const storage = getSharedStorage();
   storage.set(widgetId, data);
 
   // Finally, you can reload the widget:
-  ExtensionStorage.reloadWidget(widgetId);
+  ExtensionStorage.reloadWidget();
 }
 
 /**
@@ -87,13 +95,10 @@ export function syncWidgetWithExtension(widget: Widget, value?: string) {
  * @param widgetId The id of the widget to remove
  */
 export function removeWidgetDataFromExtension(widgetId: string) {
-  const storage = new ExtensionStorage(
-    config.expo.ios.entitlements["com.apple.security.application-groups"][0]
-  );
+  const storage = getSharedStorage();
   storage.remove(widgetId);
 
   // Reload all widget timelines and configurations.
-  // This should prompt the WidgetQuery to update its list.
   ExtensionStorage.reloadWidget(); 
 }
 
@@ -102,10 +107,11 @@ export function removeWidgetDataFromExtension(widgetId: string) {
  * @param widgets List of widgets to sync
  */
 export function syncAllWidgetsWithExtension(widgets: Widget[]) {
+  // Sync each individual widget's data
   widgets.forEach((widget) => {
     syncWidgetWithExtension(widget);
   });
 
   // Reload all widgets
-  // ExtensionStorage.reloadWidget();
+  ExtensionStorage.reloadWidget();
 }

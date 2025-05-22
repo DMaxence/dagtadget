@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { TouchableOpacity } from "react-native";
 
@@ -23,6 +23,11 @@ export default function CreateWidgetScreen() {
       <Stack.Screen
         options={{
           title: t("widget.create.title"),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()}>
+              <ThemedText>{t("common.cancel")}</ThemedText>
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity
               onPress={() => formRef.current?.handleSave()}
