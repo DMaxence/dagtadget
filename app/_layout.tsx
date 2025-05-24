@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { LogSnag } from "logsnag";
 import { PropsWithChildren, useEffect } from "react";
 import "react-native-reanimated";
+import * as Linking from "expo-linking";
 
 import { t } from "@/constants/i18n";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -93,6 +94,44 @@ export default function RootLayout() {
           // Hide splash screen
           SplashScreen.hideAsync();
         });
+    }
+  }, [loaded]);
+
+  // Handle initial URL for cold app launches from deep links
+  useEffect(() => {
+    let hasHandledInitialURL = false;
+
+    const handleInitialURL = async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl && !hasHandledInitialURL) {
+          hasHandledInitialURL = true;
+          router.replace("/");
+          const parsedUrl = Linking.parse(initialUrl);
+
+          // Construct the correct path for routing
+          let routePath = parsedUrl.path;
+
+          // Handle widget URLs: datadget://widget/{id} -> /widget/{id}
+          if (parsedUrl.hostname === "widget") {
+            routePath = `/widget/${parsedUrl.path || ""}`;
+          }
+
+          if (routePath) {
+            if (router.canGoBack()) {
+              router.replace(routePath as any);
+            } else {
+              router.push(routePath as any);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error handling initial URL:", error);
+      }
+    };
+
+    if (loaded) {
+      handleInitialURL();
     }
   }, [loaded]);
 

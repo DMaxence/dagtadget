@@ -11,7 +11,7 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "ios:widget": "expo prebuild --clean --platform ios && expo run:ios",
-    "ios:testflight": "eas build --platform ios --auto-submit"
+    "ios:testflight": "eas build --platform ios --non-interactive --no-wait --auto-submit"
   },
   "jest": {
     "preset": "jest-expo"
