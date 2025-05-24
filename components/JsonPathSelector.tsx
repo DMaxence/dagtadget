@@ -8,6 +8,7 @@ import {
 } from "react-native";
 
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { t } from "@/constants/i18n";
 import { ThemedText } from "./ThemedText";
 
 interface JsonPathSelectorProps {
@@ -97,15 +98,15 @@ export function JsonPathSelector({
   };
 
   const getValueDisplay = (value: any) => {
-    if (value === null) return "null";
-    if (value === undefined) return "undefined";
+    if (value === null) return t("dataSelection.null");
+    if (value === undefined) return t("dataSelection.undefined");
 
     const type = typeof value;
     switch (type) {
       case "string":
         return `"${value}"`;
       case "object":
-        return Array.isArray(value) ? "Array" : "Object";
+        return Array.isArray(value) ? t("dataSelection.array") : t("dataSelection.object");
       default:
         return String(value);
     }
@@ -140,8 +141,8 @@ export function JsonPathSelector({
           ]}
           onPress={() => onPathSelect(path)}
         >
-          <ThemedText style={{ color: keyColor }}>value: </ThemedText>
-          <ThemedText style={{ color: nullColor }}>null</ThemedText>
+          <ThemedText style={{ color: keyColor }}>{t("dataSelection.value")} </ThemedText>
+          <ThemedText style={{ color: nullColor }}>{t("dataSelection.null")}</ThemedText>
         </TouchableOpacity>
       );
     }
@@ -158,7 +159,7 @@ export function JsonPathSelector({
           ]}
           onPress={() => onPathSelect(path)}
         >
-          <ThemedText style={{ color: keyColor }}>value: </ThemedText>
+          <ThemedText style={{ color: keyColor }}>{t("dataSelection.value")} </ThemedText>
           <ThemedText style={{ color: getValueColor(node) }}>
             {getValueDisplay(node)}
           </ThemedText>
@@ -185,7 +186,7 @@ export function JsonPathSelector({
             </ThemedText>
           </View>
           <ThemedText style={{ color: folderColor }}>
-            {isArray ? "Array" : "Object"}{" "}
+            {isArray ? t("dataSelection.array") : t("dataSelection.object")}{" "}
             {isArray
               ? `[${Object.keys(node).length}]`
               : `{${Object.keys(node).length}}`}
@@ -245,7 +246,7 @@ export function JsonPathSelector({
       >
         <ActivityIndicator size="small" color={accentColor} />
         <ThemedText style={styles.loadingText}>
-          Data will be fetched automatically when URL is entered...
+          {t("loading.dataWillBeFetched")}
         </ThemedText>
       </View>
     );
@@ -255,7 +256,7 @@ export function JsonPathSelector({
     return (
       <View style={[styles.container, { borderColor }]}>
         <ThemedText style={styles.emptyText}>
-          No data available. Please enter a valid API URL.
+          {t("dataSelection.noData")}
         </ThemedText>
       </View>
     );

@@ -41,7 +41,7 @@ export default function EditWidgetScreen() {
       <ThemedView
         style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
       >
-        <ThemedText>Loading...</ThemedText>
+        <ThemedText>{t("common.loading")}</ThemedText>
       </ThemedView>
     );
   }

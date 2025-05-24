@@ -6,3 +6,4 @@ alwaysApply: false
 - Use react-native-i18n or expo-localization for internationalization and localization.
 - Support multiple languages and RTL layouts.
 - Ensure text scaling and font adjustments for accessibility.
+- Every time a text is added, it should be translated in english and french.

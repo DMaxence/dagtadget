@@ -17,6 +17,10 @@ import { t } from "@/constants/i18n";
 import { widgetActions, widgetState } from "@/state/widget";
 import { Widget } from "@/types/widget";
 import { COLOR_OPTIONS } from "./ColorSelector";
+import {
+  calculateGrowthPercentage,
+  formatGrowthPercentage,
+} from "@/utils/historyUtils";
 
 interface WidgetItemProps {
   widget: Widget;
@@ -201,6 +205,14 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
   const isRefreshing = refreshing.get();
   const widgetColor = getWidgetColor();
 
+  // Calculate growth percentage for the last 24 hours
+  const getGrowthPercentage = () => {
+    if (!currentWidget?.dataSource.history) return null;
+    return calculateGrowthPercentage(currentWidget.dataSource.history, 24);
+  };
+
+  const growthPercentage = getGrowthPercentage();
+
   // Format value based on locale
   const formatValue = (value: string | undefined) => {
     if (!value || value.trim() === "") return "--";
@@ -242,12 +254,43 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
         <ThemedText style={[styles.name, { color: textColor }]} type="subtitle">
           {currentWidget.name}
         </ThemedText>
+        {/* <View style={styles.metadataRow}> */}
         <ThemedText
           style={[styles.updatedAt, { color: secondaryTextColor }]}
-          type="small"
+          type="default"
         >
           {getLastUpdated()}
         </ThemedText>
+        {growthPercentage !== null && (
+          <View style={styles.metadataRow}>
+            <View
+              style={[
+                styles.growthBadge,
+                {
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                },
+              ]}
+            >
+              <Ionicons
+                name={growthPercentage >= 0 ? "trending-up" : "trending-down"}
+                size={14}
+                color={growthPercentage >= 0 ? "#34c759" : "#ff453a"}
+              />
+              <ThemedText
+                style={[
+                  styles.growthText,
+                  {
+                    color: growthPercentage >= 0 ? "#34c759" : "#ff453a",
+                  },
+                ]}
+                type="default"
+              >
+                {formatGrowthPercentage(growthPercentage)}
+              </ThemedText>
+            </View>
+          </View>
+        )}
+        {/* </View> */}
       </View>
 
       {/* Middle section - Value */}
@@ -415,5 +458,21 @@ const styles = StyleSheet.create({
   },
   updatedAt: {
     textAlign: "left",
+  },
+  metadataRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  growthBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  growthText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 2,
   },
 });

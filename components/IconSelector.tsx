@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { t } from "@/constants/i18n";
 
 // Icon names chosen for their similarity to common SF Symbols
 // You can expand this list based on your needs.
@@ -103,7 +104,7 @@ export const IconSelector: React.FC<IconSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <ThemedText style={[styles.label, { color: labelColor }]}>Icon</ThemedText>
+      <ThemedText style={[styles.label, { color: labelColor }]}>{t("widget.create.iconLabel")}</ThemedText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.iconGrid}>
           {AVAILABLE_ICONS.map((iconName) => (

@@ -155,6 +155,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="widget/[id]"
+            options={{
+              headerShown: true,
+              headerBackTitle: t("common.back"),
+            }}
+          />
+          <Stack.Screen
             name="edit-widget/[id]"
             options={{
               headerShown: true,

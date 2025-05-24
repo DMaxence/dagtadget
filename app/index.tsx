@@ -71,7 +71,7 @@ const HomeScreen = observer(() => {
   const onNavigateToWidget = (widgetId: string) => {
     // @ts-ignore - This route will be created
     router.push({
-      pathname: "/edit-widget/[id]",
+      pathname: "/widget/[id]",
       params: { id: widgetId },
     });
   };

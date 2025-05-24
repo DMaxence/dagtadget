@@ -11,6 +11,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -166,7 +167,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
           clearTimeout(fetchTimerRef.current);
         }
       };
-    }, [dataSourceUrl]);
+    }, [dataSourceUrl, headers]);
 
     // Function to validate URL
     const isValidUrl = (url: string): boolean => {
@@ -219,11 +220,11 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       try {
         const value = path ? parseJsonPath(data, path) : data;
         setPreviewValue(
-          value !== null && value !== undefined ? String(value) : "No data"
+          value !== null && value !== undefined ? String(value) : t("dataSelection.noData")
         );
       } catch (error) {
         console.error("Error extracting value:", error);
-        setPreviewValue("Error");
+        setPreviewValue(t("analytics.error", { error: "extraction failed" }));
       }
     };
 
@@ -323,13 +324,13 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
         widgetActions.scheduleRefreshes();
 
         // Navigate back
-        router.dismissAll();
+        router.dismiss();
       } catch (error) {
         console.error(
           `Error ${mode === "create" ? "creating" : "updating"} widget:`,
           error
         );
-        setErrorMessage("Failed to save widget");
+        setErrorMessage(t("widget.create.errorSaving"));
       } finally {
         setIsSaving(false);
       }
@@ -339,15 +340,15 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       if (!widgetId) return;
 
       Alert.alert(
-        "Delete Widget",
-        "Are you sure you want to delete this widget?",
+        t("delete.widget.title"),
+        t("delete.widget.message"),
         [
           {
-            text: "Cancel",
+            text: t("common.cancel"),
             style: "cancel",
           },
           {
-            text: "Delete",
+            text: t("common.delete"),
             style: "destructive",
             onPress: async () => {
               setIsDeleting(true);
@@ -357,7 +358,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                 router.dismissAll();
               } catch (error) {
                 console.error("Error deleting widget:", error);
-                setErrorMessage("Failed to delete widget");
+                setErrorMessage(t("widget.create.errorDeleting"));
               } finally {
                 setIsDeleting(false);
               }
@@ -402,13 +403,13 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       placeholder: string,
       keyboardType?: "default" | "url",
       autoCapitalize?: "none" | "sentences",
-      icon?: string
+      icon?: keyof typeof Ionicons.glyphMap
     ) => (
       <View style={styles.formGroup}>
         <View style={styles.formFieldHeader}>
           {icon && (
             <View style={[styles.formFieldIcon, { backgroundColor: '#ff9500' }]}>
-              <Ionicons name={icon} size={20} color="#ffffff" />
+              <Ionicons name={icon as any} size={20} color="#ffffff" />
             </View>
           )}
           <ThemedText style={[styles.label, { color: textColor }]}>{label}</ThemedText>
@@ -460,7 +461,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
         {isLoadingApiData && (
           <View style={styles.loadingIndicator}>
             <ActivityIndicator size="small" color={accentColor} />
-            <ThemedText style={styles.loadingText}>Fetching data...</ThemedText>
+            <ThemedText style={styles.loadingText}>{t("loading.fetchingData")}</ThemedText>
           </View>
         )}
 
@@ -469,7 +470,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
             <ThemedText
               style={[styles.label, { color: labelColor, marginBottom: 0 }]}
             >
-              Headers
+              {t("headers.title")}
             </ThemedText>
             <TouchableOpacity
               style={[styles.addHeaderButton, { backgroundColor: accentColor }]}
@@ -481,7 +482,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
 
           {headers.length === 0 && (
             <ThemedText style={styles.noHeadersText}>
-              No headers added. Click + to add a header.
+              {t("headers.noHeaders")}
             </ThemedText>
           )}
 
@@ -498,8 +499,10 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                 ]}
                 value={header.key}
                 onChangeText={(text) => updateHeader(header.id, "key", text)}
-                placeholder="Key"
+                placeholder={t("headers.key")}
                 placeholderTextColor={placeholderColor}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <ThemedText style={styles.headerColon}>:</ThemedText>
               <TextInput
@@ -513,8 +516,10 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                 ]}
                 value={header.value}
                 onChangeText={(text) => updateHeader(header.id, "value", text)}
-                placeholder="Value"
+                placeholder={t("headers.value")}
                 placeholderTextColor={placeholderColor}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <TouchableOpacity
                 style={styles.removeHeaderButton}
@@ -531,10 +536,10 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
     const renderJsonPathSelector = () => (
       <View style={styles.formGroup}>
         <ThemedText style={[styles.label, { color: labelColor }]}>
-          Data Selection
+          {t("dataSelection.title")}
         </ThemedText>
         <ThemedText style={styles.helpText}>
-          Select the value you want to display by clicking on it
+          {t("dataSelection.helpText")}
         </ThemedText>
 
         <JsonPathSelector
@@ -559,7 +564,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
         >
           <View style={styles.widgetContent}>
             <ThemedText style={styles.previewTitle}>
-              {name || "Widget Preview"}
+              {name || t("widgetPreview.title")}
             </ThemedText>
           </View>
 
@@ -574,21 +579,12 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
                 minimumFontScale={0.7}
               >
                 {prefix}
-                {previewValue ?? "Preview"}
+                {previewValue ?? t("widgetPreview.preview")}
                 {suffix}
               </ThemedText>
             )}
             <ThemedText style={styles.updatedAt}>
-              {dataSourceUrl ? "Data source connected" : "No data source"}
-              {/* {icon && (
-                <View>
-                  <Ionicons
-                    name={icon}
-                    size={18}
-                    color="#ffffff"
-                  />
-                </View>
-              )} */}
+              {dataSourceUrl ? t("widgetPreview.dataSourceConnected") : t("widgetPreview.noDataSource")}
             </ThemedText>
           </View>
         </ThemedView>
@@ -602,114 +598,121 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
     }));
 
     return (
-      <ScrollView
+      <KeyboardAvoidingView 
         style={[styles.container, { backgroundColor }]}
-        contentContainerStyle={styles.contentContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-        {renderWidgetPreview()}
+        <ScrollView
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {renderWidgetPreview()}
 
-        <View style={styles.formContainer}>
-          {renderFormField(
-            t("widget.create.nameLabel"),
-            name,
-            setName,
-            t("widget.create.namePlaceholder")
-          )}
+          <View style={styles.formContainer}>
+            {renderFormField(
+              t("widget.create.nameLabel"),
+              name,
+              setName,
+              t("widget.create.namePlaceholder")
+            )}
 
-          <ColorSelector selectedColor={color} onSelectColor={setColor} />
+            <ColorSelector selectedColor={color} onSelectColor={setColor} />
 
-          {renderFormField(
-            t("widget.create.prefixLabel"),
-            prefix,
-            setPrefix,
-            t("widget.create.prefixPlaceholder")
-          )}
+            {renderFormField(
+              t("widget.create.prefixLabel"),
+              prefix,
+              setPrefix,
+              t("widget.create.prefixPlaceholder")
+            )}
 
-          {renderFormField(
-            t("widget.create.suffixLabel"),
-            suffix,
-            setSuffix,
-            t("widget.create.suffixPlaceholder")
-          )}
+            {renderFormField(
+              t("widget.create.suffixLabel"),
+              suffix,
+              setSuffix,
+              t("widget.create.suffixPlaceholder")
+            )}
 
-          {renderDataSourceField()}
+            {renderDataSourceField()}
 
-          {apiResponseData && renderJsonPathSelector()}
+            {apiResponseData && renderJsonPathSelector()}
 
-          <View style={styles.formGroup} >
-            <ThemedText style={[styles.label, { color: labelColor }]}>
-              {t("widget.create.refreshIntervalLabel")}
-            </ThemedText>
-            <View
-              style={[
-                styles.pickerContainer,
-                { backgroundColor: inputBackgroundColor, borderColor },
-              ]}
-            >
-              <Picker
-                selectedValue={refreshInterval}
-                onValueChange={(itemValue: WidgetRefreshInterval) =>
-                  setRefreshInterval(itemValue)
-                }
-                style={styles.picker}
-                dropdownIconColor={textColor}
-                itemStyle={{ color: textColor }}
+            <View style={styles.formGroup} >
+              <ThemedText style={[styles.label, { color: labelColor }]}>
+                {t("widget.create.refreshIntervalLabel")}
+              </ThemedText>
+              <View
+                style={[
+                  styles.pickerContainer,
+                  { backgroundColor: inputBackgroundColor, borderColor },
+                ]}
               >
-                <Picker.Item
-                  label="15 minutes"
-                  value={WidgetRefreshInterval.MIN_15}
-                />
-                <Picker.Item
-                  label="30 minutes"
-                  value={WidgetRefreshInterval.MIN_30}
-                />
-                <Picker.Item
-                  label="1 hour"
-                  value={WidgetRefreshInterval.HOUR_1}
-                />
-                <Picker.Item
-                  label="4 hours"
-                  value={WidgetRefreshInterval.HOUR_4}
-                />
-                <Picker.Item
-                  label="6 hours"
-                  value={WidgetRefreshInterval.HOUR_6}
-                />
-                <Picker.Item
-                  label="12 hours"
-                  value={WidgetRefreshInterval.HOUR_12}
-                />
-                <Picker.Item
-                  label="1 day"
-                  value={WidgetRefreshInterval.DAY_1}
-                />
-                <Picker.Item
-                  label="2 days"
-                  value={WidgetRefreshInterval.DAY_2}
-                />
-              </Picker>
+                <Picker
+                  selectedValue={refreshInterval}
+                  onValueChange={(itemValue: WidgetRefreshInterval) =>
+                    setRefreshInterval(itemValue)
+                  }
+                  style={styles.picker}
+                  dropdownIconColor={textColor}
+                  itemStyle={{ color: textColor }}
+                >
+                  <Picker.Item
+                    label={t("refreshInterval.15min")}
+                    value={WidgetRefreshInterval.MIN_15}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.30min")}
+                    value={WidgetRefreshInterval.MIN_30}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.1hour")}
+                    value={WidgetRefreshInterval.HOUR_1}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.4hours")}
+                    value={WidgetRefreshInterval.HOUR_4}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.6hours")}
+                    value={WidgetRefreshInterval.HOUR_6}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.12hours")}
+                    value={WidgetRefreshInterval.HOUR_12}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.1day")}
+                    value={WidgetRefreshInterval.DAY_1}
+                  />
+                  <Picker.Item
+                    label={t("refreshInterval.2days")}
+                    value={WidgetRefreshInterval.DAY_2}
+                  />
+                </Picker>
+              </View>
             </View>
           </View>
-        </View>
 
-        {mode === "edit" && (
-          <TouchableOpacity
-            style={[styles.deleteButton, { borderColor: deleteColor }]}
-            onPress={handleDelete}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              style={[styles.deleteButtonText, { color: deleteColor }]}
+          {mode === "edit" && (
+            <TouchableOpacity
+              style={[styles.deleteButton, { borderColor: deleteColor }]}
+              onPress={handleDelete}
+              activeOpacity={0.7}
             >
-              {t("common.delete")}
-            </ThemedText>
-          </TouchableOpacity>
-        )}
+              <ThemedText
+                style={[styles.deleteButtonText, { color: deleteColor }]}
+              >
+                {t("common.delete")}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
 
-        {errorMessage && (
-          <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
-        )}
-      </ScrollView>
+          {errorMessage && (
+            <ThemedText style={styles.errorText}>{errorMessage}</ThemedText>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 );

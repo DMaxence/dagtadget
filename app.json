@@ -2,10 +2,10 @@
   "expo": {
     "name": "Datadget",
     "slug": "datadget",
-    "version": "0.0.10",
+    "version": "0.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "datadget",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

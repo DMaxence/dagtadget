@@ -93,6 +93,7 @@ struct SimpleEntry: TimelineEntry {
 
 struct widgetEntryView : View {
     var entry: Provider.Entry
+    @Environment(\.widgetFamily) var family
     
     // Helper to convert hex color string to Color
     private func color(from hexString: String?) -> Color? {
@@ -110,78 +111,172 @@ struct widgetEntryView : View {
             blue: Double(rgb & 0x0000FF) / 255.0
         )
     }
+    
+    // Helper to create the deep link URL
+    private func createDeepLinkURL() -> URL? {
+        if let widgetId = entry.widgetData?.id {
+            return URL(string: "datadget://widget/\(widgetId)")
+        }
+        return URL(string: "datadget://")
+    }
 
     var body: some View {
-        if let widgetData = entry.widgetData {
-            // If we have widget data, display it
-            VStack(alignment: .center, spacing: 0) {
-                HStack {
-                    Text(widgetData.name)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .padding(.top, 16)
-                        .padding(.leading, 16)
-                    
-                    Spacer()
+        Group {
+            if let widgetData = entry.widgetData {
+                // If we have widget data, display it
+                switch family {
+                case .accessoryCircular:
+                    accessoryCircularView(widgetData: widgetData)
+                case .accessoryRectangular:
+                    accessoryRectangularView(widgetData: widgetData)
+                default:
+                    defaultView(widgetData: widgetData)
                 }
-                
-                Spacer()
-                
-                if let error = widgetData.lastError, !error.isEmpty {
-                    // Show error state
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 24))
-                    Text(localizedString("widget.error"))
-                        .font(.caption)
-                        .foregroundColor(.white)
-                } else if let value = widgetData.value, !value.isEmpty {
-                    // Format the value with prefix and suffix
-                    Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 16)
-                } else {
-                    // Loading state
+            } else if let widgetId = entry.configuration.selectedWidget?.id {
+                // No data yet but widget selected
+                VStack {
+                    Text(localizedString("widget.loading"))
                     ProgressView()
                 }
-                
-                Spacer()
-                
-                if let lastFetched = widgetData.lastFetched {
-                    HStack {
-                        Text(formattedDate(timeInterval: lastFetched))
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.8))
-                            .padding(.bottom, 16)
-                            .padding(.horizontal, 16)
-                        Spacer()
-                    }
+            } else {
+                // No widget selected
+                VStack {
+                    Text(localizedString("widget.noSelection"))
+                        .font(.headline)
+                    
+                    Text(localizedString("widget.configureInstructions"))
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .padding()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(color(from: widgetData.color) ?? Color(.systemBackground))
-        } else if let widgetId = entry.configuration.selectedWidget?.id {
-            // No data yet but widget selected
-            VStack {
-                Text(localizedString("widget.loading"))
+        }
+        .widgetURL(createDeepLinkURL())
+    }
+    
+    // Default view for systemSmall and other sizes
+    private func defaultView(widgetData: WidgetData) -> some View {
+        VStack(alignment: .center, spacing: 0) {
+            HStack {
+                Text(widgetData.name)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .padding(.top, 16)
+                    .padding(.leading, 16)
+                
+                Spacer()
+            }
+            
+            Spacer()
+            
+            if let error = widgetData.lastError, !error.isEmpty {
+                // Show error state
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 24))
+                Text(localizedString("widget.error"))
+                    .font(.caption)
+                    .foregroundColor(.white)
+            } else if let value = widgetData.value, !value.isEmpty {
+                // Format the value with prefix and suffix
+                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 16)
+            } else {
+                // Loading state
                 ProgressView()
             }
-        } else {
-            // No widget selected
-            VStack {
-                Text(localizedString("widget.noSelection"))
-                    .font(.headline)
-                
-                Text(localizedString("widget.configureInstructions"))
-                    .font(.caption)
-                    .multilineTextAlignment(.center)
-                    .padding()
+            
+            Spacer()
+            
+            if let lastFetched = widgetData.lastFetched {
+                HStack {
+                    Text(formattedDate(timeInterval: lastFetched))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.bottom, 16)
+                        .padding(.horizontal, 16)
+                    Spacer()
+                }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(color(from: widgetData.color) ?? Color(.systemBackground))
+    }
+    
+    // Circular accessory view
+    private func accessoryCircularView(widgetData: WidgetData) -> some View {
+        VStack(spacing: 1) {
+            Text(widgetData.name)
+                .font(.system(size: 8))
+                .foregroundColor(.white)
+                .lineLimit(1)
+            
+            if let error = widgetData.lastError, !error.isEmpty {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 12))
+            } else if let value = widgetData.value, !value.isEmpty {
+                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                    .font(.system(size: 16))
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            } else {
+                ProgressView()
+                    .scaleEffect(0.7)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground).opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
+    }
+    
+    // Rectangular accessory view
+    private func accessoryRectangularView(widgetData: WidgetData) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(widgetData.name)
+                .font(.system(size: 14))
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .lineLimit(1)
+            
+          Spacer()
+            
+            if let error = widgetData.lastError, !error.isEmpty {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 14))
+                    Text(localizedString("widget.error"))
+                        .font(.system(size: 12))
+                        .foregroundColor(.white)
+                }
+            } else if let value = widgetData.value, !value.isEmpty {
+                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            } else {
+                ProgressView()
+            }
+            
+            Spacer()
+            
+            if let lastFetched = widgetData.lastFetched {
+                Text(formattedDate(timeInterval: lastFetched))
+                    .font(.system(size: 8))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(Color(.systemBackground).opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
     // Helper to format the value with prefix and suffix

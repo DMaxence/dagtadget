@@ -29,6 +29,13 @@ export interface HeaderPair {
   value: string;
 }
 
+// Historical data point for tracking value changes over time
+export interface HistoricalDataPoint {
+  timestamp: number;
+  value: string;
+  error?: string;
+}
+
 // Widget data fetching configuration
 export interface WidgetDataSource {
   // API URL to fetch data from
@@ -43,6 +50,8 @@ export interface WidgetDataSource {
   lastValue?: string;
   // Last fetch error if any
   lastError?: string;
+  // Historical data points for tracking changes over time
+  history?: HistoricalDataPoint[];
 }
 
 // Widget configuration
