@@ -1,5 +1,0 @@
-/* Widget strings */
-"widget.loading" = "Loading widget data...";
-"widget.noSelection" = "No Widget Selected";
-"widget.configureInstructions" = "Please select a widget from the widget configuration";
-"widget.error" = "Error fetching data"; 

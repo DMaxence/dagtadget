@@ -2,4 +2,7 @@
 "widget.loading" = "Chargement des données du widget...";
 "widget.noSelection" = "Aucun Widget Sélectionné";
 "widget.configureInstructions" = "Veuillez sélectionner un widget dans la configuration du widget";
-"widget.error" = "Erreur de récupération des données"; 
+"widget.error" = "Erreur de récupération des données";
+"widget.chartTitle" = "Widget Graphique";
+"widget.notSupported" = "Non pris en charge pour cette taille";
+"widget.noChartData" = "Aucune donnée de graphique disponible"; 

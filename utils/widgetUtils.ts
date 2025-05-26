@@ -1,6 +1,7 @@
 import { ExtensionStorage } from "@bacons/apple-targets";
 import config from "../app.json";
 import { Widget, refreshIntervalMs, WidgetRefreshInterval } from "../types/widget";
+import { widgetActions } from "../state/widget";
 
 /**
  * Formats a value with an optional prefix and suffix
@@ -47,7 +48,7 @@ export function shareWidgetData(
   data:
     | string
     | number
-    | Record<string, string | number>
+    | Record<string, any>
     | Array<Record<string, string | number>>
     | undefined
 ) {
@@ -67,7 +68,7 @@ export function syncWidgetWithExtension(widget: Widget, value?: string) {
   // Convert our widget format to the one expected by the widget extension
   const intervalMilliseconds = refreshIntervalMs[widget.refreshInterval as WidgetRefreshInterval];
 
-  const widgetData: Record<string, string | number> = {
+  const widgetData: Record<string, any> = {
     id: widget.id,
     name: widget.name,
     lastFetched: Date.now(),
@@ -85,6 +86,26 @@ export function syncWidgetWithExtension(widget: Widget, value?: string) {
     widgetData.value = widget.dataSource.lastValue;
   if (widget.dataSource.lastError)
     widgetData.lastError = widget.dataSource.lastError;
+
+  // Add growth percentage and direction for trending widgets
+  const valueChange = widgetActions.getValueChange(widget.id, 24);
+  if (valueChange && valueChange.percentageChange !== null) {
+    widgetData.growthPercentage = valueChange.percentageChange;
+    widgetData.growthDirection = valueChange.direction;
+  }
+
+  // Add chart data for chart widgets (last 7 days, max 20 points)
+  const chartData = widgetActions.getChartData(widget.id, 168); // 7 days
+  if (chartData && chartData.length > 0) {
+    // Limit to max 20 points for performance and reduce data to essential fields
+    const limitedChartData = chartData
+      .slice(-20)
+      .map(point => ({
+        timestamp: point.timestamp,
+        value: point.value
+      }));
+    widgetData.chartData = limitedChartData;
+  }
 
   // Share with widget extension
   shareWidgetData(widget.id, widgetData);

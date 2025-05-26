@@ -14,11 +14,6 @@ struct WidgetData: Decodable {
     var refreshIntervalMs: Double? // Added refresh interval in milliseconds
 }
 
-// Helper function to get localized string
-func localizedString(_ key: String) -> String {
-    return NSLocalizedString(key, comment: "")
-}
-
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date(), configuration: EnhancedWidgetConfigIntent(), widgetData: nil)
@@ -135,16 +130,16 @@ struct widgetEntryView : View {
             } else if let widgetId = entry.configuration.selectedWidget?.id {
                 // No data yet but widget selected
                 VStack {
-                    Text(localizedString("widget.loading"))
+                    Text(NSLocalizedString("widget.loading", comment: ""))
                     ProgressView()
                 }
             } else {
                 // No widget selected
                 VStack {
-                    Text(localizedString("widget.noSelection"))
+                    Text(NSLocalizedString("widget.noSelection", comment: ""))
                         .font(.headline)
                     
-                    Text(localizedString("widget.configureInstructions"))
+                    Text(NSLocalizedString("widget.configureInstructions", comment: ""))
                         .font(.caption)
                         .multilineTextAlignment(.center)
                         .padding()
@@ -175,7 +170,7 @@ struct widgetEntryView : View {
                 // Show error state
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 24))
-                Text(localizedString("widget.error"))
+                Text(NSLocalizedString("widget.error", comment: ""))
                     .font(.caption)
                     .foregroundColor(.white)
             } else if let value = widgetData.value, !value.isEmpty {
@@ -211,14 +206,15 @@ struct widgetEntryView : View {
     // Circular accessory view
     private func accessoryCircularView(widgetData: WidgetData) -> some View {
         VStack(spacing: 1) {
-            Text(widgetData.name)
-                .font(.system(size: 8))
-                .foregroundColor(.white)
-                .lineLimit(1)
-            
+          Text(widgetData.name)
+                          .font(.system(size: 8))
+                          .foregroundColor(.white)
+                          .lineLimit(1)
+
             if let error = widgetData.lastError, !error.isEmpty {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
+                    .foregroundColor(.orange)
             } else if let value = widgetData.value, !value.isEmpty {
                 Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
                     .font(.system(size: 16))
@@ -232,7 +228,7 @@ struct widgetEntryView : View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground).opacity(0.8))
+        .background(Color(.systemBackground).opacity(0.7))
         .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
     }
     
@@ -245,13 +241,11 @@ struct widgetEntryView : View {
                 .foregroundColor(.white)
                 .lineLimit(1)
             
-          Spacer()
-            
             if let error = widgetData.lastError, !error.isEmpty {
                 HStack {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 14))
-                    Text(localizedString("widget.error"))
+                    Text(NSLocalizedString("widget.error", comment: ""))
                         .font(.system(size: 12))
                         .foregroundColor(.white)
                 }
@@ -264,8 +258,6 @@ struct widgetEntryView : View {
             } else {
                 ProgressView()
             }
-            
-            Spacer()
             
             if let lastFetched = widgetData.lastFetched {
                 Text(formattedDate(timeInterval: lastFetched))
@@ -321,8 +313,8 @@ struct widgetEntryView : View {
     }
 }
 
-struct widget: Widget {
-    let kind: String = "widget"
+struct dataWidget: Widget {
+    let kind: String = "dataWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: EnhancedWidgetConfigIntent.self, provider: Provider()) { entry in
@@ -330,6 +322,8 @@ struct widget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .contentMarginsDisabled()
+        .configurationDisplayName("Data Widget")
+        .description("Shows basic data values with growth indicators")
         .supportedFamilies([.accessoryCircular,
                             .accessoryRectangular,
                             .systemSmall, .systemMedium])
@@ -345,7 +339,7 @@ extension EnhancedWidgetConfigIntent {
 }
 
 #Preview(as: .systemSmall) {
-    widget()
+    dataWidget()
 } timeline: {
     SimpleEntry(
         date: .now, 
@@ -358,7 +352,8 @@ extension EnhancedWidgetConfigIntent {
             color: "#F7931A",
             value: "43,278.65",
             lastFetched: Date().timeIntervalSince1970,
-            lastError: nil
+            lastError: nil,
+            refreshIntervalMs: 900000
         )
     )
     
@@ -371,9 +366,10 @@ extension EnhancedWidgetConfigIntent {
             prefix: "", 
             suffix: "", 
             color: "#4CAF50",
-            value: "Online",
+            value: "99.9",
             lastFetched: Date().timeIntervalSince1970,
-            lastError: nil
+            lastError: nil,
+            refreshIntervalMs: 300000
         )
     )
 }

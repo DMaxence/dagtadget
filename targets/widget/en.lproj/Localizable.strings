@@ -2,4 +2,7 @@
 "widget.loading" = "Loading widget data...";
 "widget.noSelection" = "No Widget Selected";
 "widget.configureInstructions" = "Please select a widget from the widget configuration";
-"widget.error" = "Error fetching data"; 
+"widget.error" = "Error fetching data";
+"widget.chartTitle" = "Chart Widget";
+"widget.notSupported" = "Not supported for this size";
+"widget.noChartData" = "No chart data available"; 
