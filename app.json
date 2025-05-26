@@ -2,7 +2,7 @@
   "expo": {
     "name": "Datadget",
     "slug": "datadget",
-    "version": "0.0.21",
+    "version": "0.0.30",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "datadget",
