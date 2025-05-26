@@ -16,15 +16,18 @@ struct WidgetData: Decodable {
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: EnhancedWidgetConfigIntent(), widgetData: nil)
+        // For placeholder, show configuration prompt
+        return SimpleEntry(date: Date(), configuration: EnhancedWidgetConfigIntent(), widgetData: nil)
     }
 
     func snapshot(for configuration: EnhancedWidgetConfigIntent, in context: Context) async -> SimpleEntry {
-        let widgetData = fetchWidgetData(for: configuration.selectedWidget?.id)
+        // For snapshot, always show the first available widget
+        let widgetData = fetchFirstAvailableWidget()
         return SimpleEntry(date: Date(), configuration: configuration, widgetData: widgetData)
     }
     
     func timeline(for configuration: EnhancedWidgetConfigIntent, in context: Context) async -> Timeline<SimpleEntry> {
+        // For timeline, only show data if a widget is selected
         let widgetData = fetchWidgetData(for: configuration.selectedWidget?.id)
         
         var entries: [SimpleEntry] = []
@@ -74,6 +77,44 @@ struct Provider: AppIntentTimelineProvider {
                 refreshIntervalMs: json["refreshIntervalMs"] as? Double // Read the refresh interval
             )
             return widgetData
+        }
+        
+        return nil
+    }
+    
+    // Helper function to fetch the first available widget for placeholder
+    private func fetchFirstAvailableWidget() -> WidgetData? {
+        guard let groupDefaults = UserDefaults(suiteName: "group.com.datadget") else {
+            return nil
+        }
+        
+        // Get all keys in the UserDefaults and find widgets, then sort for consistency
+        let allKeys = Array(groupDefaults.dictionaryRepresentation().keys).sorted()
+        
+        for key in allKeys {
+            if let data = groupDefaults.data(forKey: key),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let name = json["name"] as? String {
+                
+                // Get the value, ensuring it's not an empty string
+                var value = json["value"] as? String ?? (json["lastValue"] as? String)
+                if let val = value, val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    value = nil
+                }
+                
+                let widgetData = WidgetData(
+                    id: key,
+                    name: name,
+                    prefix: json["prefix"] as? String,
+                    suffix: json["suffix"] as? String,
+                    color: json["color"] as? String,
+                    value: value,
+                    lastFetched: json["lastFetched"] as? TimeInterval,
+                    lastError: json["lastError"] as? String,
+                    refreshIntervalMs: json["refreshIntervalMs"] as? Double
+                )
+                return widgetData
+            }
         }
         
         return nil
@@ -134,16 +175,22 @@ struct widgetEntryView : View {
                     ProgressView()
                 }
             } else {
-                // No widget selected
-                VStack {
-                    Text(NSLocalizedString("widget.noSelection", comment: ""))
-                        .font(.headline)
+                // No widget selected - show configuration prompt
+                VStack(spacing: 8) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
                     
-                    Text(NSLocalizedString("widget.configureInstructions", comment: ""))
+                    Text(NSLocalizedString("widget.needsConfiguration", comment: ""))
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    
+                    Text(NSLocalizedString("widget.tapToConfigureInstructions", comment: ""))
                         .font(.caption)
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .foregroundColor(.secondary)
                 }
+                .padding()
             }
         }
         .widgetURL(createDeepLinkURL())

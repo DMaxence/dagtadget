@@ -184,7 +184,53 @@ export default function WidgetScreen() {
   };
 
   const SimpleChart = ({ history }: { history: any[] }) => {
-    const chartData = getChartData(history, timelineHoursMap[selectedTimeline]);
+    // Group and average data by day for day-based timelines
+    const processDataForTimeline = (data: any[], timeline: TimelineOption) => {
+      if (timeline !== '7days' && timeline !== '30days') {
+        return getChartData(data, timelineHoursMap[timeline]);
+      }
+
+      // For day-based timelines, group by day and calculate averages
+      const dayGroups = new Map<string, { values: number[], timestamps: number[] }>();
+      
+      data.forEach(point => {
+        const date = new Date(point.timestamp);
+        const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        
+        if (!dayGroups.has(dayKey)) {
+          dayGroups.set(dayKey, { values: [], timestamps: [] });
+        }
+        
+        const numericValue = typeof point.value === 'string' 
+          ? parseFloat(point.value.replace(/,/g, '.'))
+          : point.value;
+          
+        if (!isNaN(numericValue)) {
+          dayGroups.get(dayKey)!.values.push(numericValue);
+          dayGroups.get(dayKey)!.timestamps.push(point.timestamp);
+        }
+      });
+
+      // Convert groups to averaged data points
+      const averagedData = Array.from(dayGroups.entries()).map(([dayKey, group]) => {
+        const average = group.values.reduce((sum, val) => sum + val, 0) / group.values.length;
+        // Use the latest timestamp for the day
+        const latestTimestamp = Math.max(...group.timestamps);
+        
+        return {
+          value: average,
+          timestamp: latestTimestamp
+        };
+      });
+
+      // Sort by timestamp and filter by timeline hours
+      const sortedData = averagedData.sort((a, b) => a.timestamp - b.timestamp);
+      const cutoffTime = Date.now() - (timelineHoursMap[timeline] * 60 * 60 * 1000);
+      
+      return sortedData.filter(point => point.timestamp >= cutoffTime);
+    };
+
+    const chartData = processDataForTimeline(history, selectedTimeline);
     const screenWidth = Dimensions.get("window").width - 32;
     const chartWidth = screenWidth - 32; // Account for card padding (16px on each side)
     const chartHeight = 200;
@@ -624,7 +670,7 @@ export default function WidgetScreen() {
           </View>
 
           <View style={styles.valueSection}>
-            <ThemedText type="title">
+            <ThemedText type="title" style={{ color: "white" }}>
               {widgetData.prefix || ""}
               {formatValue(widgetData.dataSource.lastValue)}
               {widgetData.suffix || ""}

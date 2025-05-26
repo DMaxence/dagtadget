@@ -5,4 +5,6 @@
 "widget.error" = "Error fetching data";
 "widget.chartTitle" = "Chart Widget";
 "widget.notSupported" = "Not supported for this size";
-"widget.noChartData" = "No chart data available"; 
+"widget.noChartData" = "No chart data available";
+"widget.needsConfiguration" = "Tap to Configure";
+"widget.tapToConfigureInstructions" = "Long press and select 'Edit Widget' to choose which data to display";

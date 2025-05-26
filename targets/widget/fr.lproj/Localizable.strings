@@ -5,4 +5,6 @@
 "widget.error" = "Erreur de récupération des données";
 "widget.chartTitle" = "Widget Graphique";
 "widget.notSupported" = "Non pris en charge pour cette taille";
-"widget.noChartData" = "Aucune donnée de graphique disponible"; 
+"widget.noChartData" = "Aucune donnée de graphique disponible";
+"widget.needsConfiguration" = "Appuyer pour configurer";
+"widget.tapToConfigureInstructions" = "Appuyez longuement et selectionner 'Modifier le widget' pour choisir quel widget afficher";

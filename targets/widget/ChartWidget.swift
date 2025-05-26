@@ -25,15 +25,18 @@ struct ChartDataPoint: Decodable {
 
 struct ChartProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> ChartEntry {
-        ChartEntry(date: Date(), configuration: EnhancedWidgetConfigIntent(), widgetData: nil)
+        // For placeholder, show configuration prompt
+        return ChartEntry(date: Date(), configuration: EnhancedWidgetConfigIntent(), widgetData: nil)
     }
 
     func snapshot(for configuration: EnhancedWidgetConfigIntent, in context: Context) async -> ChartEntry {
-        let widgetData = fetchWidgetData(for: configuration.selectedWidget?.id)
+        // For snapshot, always show the first available widget
+        let widgetData = fetchFirstAvailableWidget()
         return ChartEntry(date: Date(), configuration: configuration, widgetData: widgetData)
     }
     
     func timeline(for configuration: EnhancedWidgetConfigIntent, in context: Context) async -> Timeline<ChartEntry> {
+        // For timeline, only show data if a widget is selected
         let widgetData = fetchWidgetData(for: configuration.selectedWidget?.id)
         
         var entries: [ChartEntry] = []
@@ -102,6 +105,59 @@ struct ChartProvider: AppIntentTimelineProvider {
         
         return nil
     }
+    
+    // Helper function to fetch the first available widget for placeholder
+    private func fetchFirstAvailableWidget() -> ChartWidgetData? {
+        guard let groupDefaults = UserDefaults(suiteName: "group.com.datadget") else {
+            return nil
+        }
+        
+        // Get all keys in the UserDefaults and find widgets, then sort for consistency
+        let allKeys = Array(groupDefaults.dictionaryRepresentation().keys).sorted()
+        
+        for key in allKeys {
+            if let data = groupDefaults.data(forKey: key),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let name = json["name"] as? String {
+                
+                // Get the value, ensuring it's not an empty string
+                var value = json["value"] as? String ?? (json["lastValue"] as? String)
+                if let val = value, val.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    value = nil
+                }
+                
+                // Parse chart data if available
+                var chartData: [ChartDataPoint]? = nil
+                if let chartDataArray = json["chartData"] as? [[String: Any]] {
+                    chartData = chartDataArray.compactMap { pointData in
+                        guard let timestamp = pointData["timestamp"] as? TimeInterval,
+                              let value = pointData["value"] as? Double else {
+                            return nil
+                        }
+                        return ChartDataPoint(timestamp: timestamp, value: value)
+                    }
+                }
+                
+                let widgetData = ChartWidgetData(
+                    id: key,
+                    name: name,
+                    prefix: json["prefix"] as? String,
+                    suffix: json["suffix"] as? String,
+                    color: json["color"] as? String,
+                    value: value,
+                    lastFetched: json["lastFetched"] as? TimeInterval,
+                    lastError: json["lastError"] as? String,
+                    refreshIntervalMs: json["refreshIntervalMs"] as? Double,
+                    growthPercentage: json["growthPercentage"] as? Double,
+                    growthDirection: json["growthDirection"] as? String,
+                    chartData: chartData
+                )
+                return widgetData
+            }
+        }
+        
+        return nil
+    }
 }
 
 struct ChartEntry: TimelineEntry {
@@ -164,16 +220,22 @@ struct chartWidgetEntryView : View {
                     ProgressView()
                 }
             } else {
-                // No widget selected
-                VStack {
-                    Text(NSLocalizedString("widget.noSelection", comment: ""))
-                        .font(.headline)
+                // No widget selected - show configuration prompt
+                VStack(spacing: 8) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
                     
-                    Text(NSLocalizedString("widget.configureInstructions", comment: ""))
+                    Text(NSLocalizedString("widget.needsConfiguration", comment: ""))
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    
+                    Text(NSLocalizedString("widget.tapToConfigureInstructions", comment: ""))
                         .font(.caption)
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .foregroundColor(.secondary)
                 }
+                .padding()
             }
         }
         .widgetURL(createDeepLinkURL())
@@ -204,8 +266,8 @@ struct chartWidgetEntryView : View {
                     }
                 }
             }
-            .padding(.top, 6)
-            .padding(.horizontal, 6)
+            .padding(.top, 8)
+            .padding(.horizontal, 8)
             
             // Main content
             if let error = widgetData.lastError, !error.isEmpty {
@@ -221,11 +283,11 @@ struct chartWidgetEntryView : View {
                 // Value
                 if let value = widgetData.value, !value.isEmpty {
                     Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white) 
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, 8)
                 }
                 
                 // Mini chart for rectangular accessory
@@ -238,6 +300,7 @@ struct chartWidgetEntryView : View {
                         Text(shortFormattedDate(timeInterval: lastFetched))
                             .font(.system(size: 8))
                             .foregroundColor(.white.opacity(0.6))
+                            .padding(.horizontal, 8)
                     }
                 }
             }
@@ -338,41 +401,65 @@ struct chartWidgetEntryView : View {
             let width = geometry.size.width
             let height = geometry.size.height
             
+            // Create smooth curved path
             Path { path in
-                for (index, point) in data.enumerated() {
+                guard data.count > 1 else { return }
+                
+                let points = data.enumerated().map { index, point in
                     let x = CGFloat(index) / CGFloat(data.count - 1) * width
                     let normalizedValue = range > 0 ? (point.value - minValue) / range : 0.5
                     let y = height - (CGFloat(normalizedValue) * height)
+                    return CGPoint(x: x, y: y)
+                }
+                
+                path.move(to: points[0])
+                
+                for i in 1..<points.count {
+                    let currentPoint = points[i]
+                    let previousPoint = points[i-1]
                     
-                    if index == 0 {
-                        path.move(to: CGPoint(x: x, y: y))
-                    } else {
-                        path.addLine(to: CGPoint(x: x, y: y))
-                    }
+                    // Calculate control points for smooth curves
+                    let controlPointX = (previousPoint.x + currentPoint.x) / 2
+                    let controlPoint1 = CGPoint(x: controlPointX, y: previousPoint.y)
+                    let controlPoint2 = CGPoint(x: controlPointX, y: currentPoint.y)
+                    
+                    path.addCurve(to: currentPoint, control1: controlPoint1, control2: controlPoint2)
                 }
             }
             .stroke(Color.white.opacity(0.8), lineWidth: 2)
             
-            // Add gradient fill
+            // Add subtle gradient fill
             Path { path in
-                for (index, point) in data.enumerated() {
+                guard data.count > 1 else { return }
+                
+                let points = data.enumerated().map { index, point in
                     let x = CGFloat(index) / CGFloat(data.count - 1) * width
                     let normalizedValue = range > 0 ? (point.value - minValue) / range : 0.5
                     let y = height - (CGFloat(normalizedValue) * height)
-                    
-                    if index == 0 {
-                        path.move(to: CGPoint(x: x, y: y))
-                    } else {
-                        path.addLine(to: CGPoint(x: x, y: y))
-                    }
+                    return CGPoint(x: x, y: y)
                 }
+                
+                path.move(to: points[0])
+                
+                for i in 1..<points.count {
+                    let currentPoint = points[i]
+                    let previousPoint = points[i-1]
+                    
+                    // Calculate control points for smooth curves
+                    let controlPointX = (previousPoint.x + currentPoint.x) / 2
+                    let controlPoint1 = CGPoint(x: controlPointX, y: previousPoint.y)
+                    let controlPoint2 = CGPoint(x: controlPointX, y: currentPoint.y)
+                    
+                    path.addCurve(to: currentPoint, control1: controlPoint1, control2: controlPoint2)
+                }
+                
                 path.addLine(to: CGPoint(x: width, y: height))
                 path.addLine(to: CGPoint(x: 0, y: height))
                 path.closeSubpath()
             }
             .fill(
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.white.opacity(0.3), Color.white.opacity(0.1)]),
+                    gradient: Gradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.02)]),
                     startPoint: .top,
                     endPoint: .bottom
                 )
