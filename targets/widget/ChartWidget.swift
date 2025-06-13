@@ -27,11 +27,8 @@ struct ChartDataPoint: Decodable {
 @available(iOS 13.0, *)
 extension ProcessInfo {
     var isChartIOS26OrLater: Bool {
-        if #available(iOS 26.0, *) {
-            return true
-        } else {
-            return false
-        }
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        return version.majorVersion >= 26
     }
 }
 
