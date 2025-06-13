@@ -4,33 +4,34 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
+import * as Linking from "expo-linking";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { LogSnag } from "logsnag";
 import { PropsWithChildren, useEffect } from "react";
 import "react-native-reanimated";
-import * as Linking from "expo-linking";
 
 import { t } from "@/constants/i18n";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { registerBackgroundTask } from "@/services/backgroundTask";
 import { widgetActions } from "@/state/widget";
-import {
-  getDevice,
-  getLanguage,
-  getOs,
-  getRegion,
-  getTimeZone,
-  getVersion,
-} from "@/utils/device";
-import { isNewUser } from "@/utils/userUtils";
+import { mixpanel } from "@/utils/mixpanel";
+import { supabase } from "@/utils/supabase";
+import { createUser, updateLastActivity } from "@/utils/userUtils";
+import Aptabase from "@aptabase/react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { PostHogProvider as OriginalPostHogProvider } from "posthog-react-native";
+import {
+  PostHogProvider as OriginalPostHogProvider,
+  usePostHog,
+} from "posthog-react-native";
 import { TouchableOpacity } from "react-native";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+mixpanel.init();
+
+Aptabase.init(process.env.EXPO_PUBLIC_APTABASE_APP_KEY || "");
 
 // Bugsnag.start({
 //   enabledReleaseStages: ["production"],
@@ -52,48 +53,34 @@ const PostHogProvider = ({ children }: PropsWithChildren) => {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const posthog = usePostHog();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
+  const checkSession = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
+    if (!userId) {
+      createUser();
+    } else {
+      updateLastActivity();
+    }
+  };
+
   useEffect(() => {
     if (loaded) {
-      // Check if user is new and load stored widgets
-      isNewUser()
-        .then((userId) => {
-          if (userId) {
-            const logsnag = new LogSnag({
-              token: process.env.EXPO_PUBLIC_LOGSNAG_TOKEN || "",
-              project: process.env.EXPO_PUBLIC_LOGSNAG_PROJECT || "",
-            });
-            logsnag.track({
-              channel: "users",
-              event: "New user",
-              user_id: userId,
-              icon: "👋",
-              notify: true,
-              tags: {
-                time: new Date().toISOString(),
-                version: getVersion(),
-                os: getOs(),
-                device: getDevice() || "",
-                language: getLanguage(),
-                region: getRegion() || "",
-                timezone: getTimeZone() || "",
-              },
-            });
-          }
-        })
-        .then(() => {
-          // Schedule widget refreshes (foreground)
-          widgetActions.scheduleRefreshes();
+      checkSession();
 
-          // Register background task for widget updates
-          registerBackgroundTask();
+      widgetActions.scheduleRefreshes();
 
-          // Hide splash screen
-          SplashScreen.hideAsync();
-        });
+      // Register background task for widget updates
+      registerBackgroundTask();
+
+      // Hide splash screen
+      SplashScreen.hideAsync();
     }
   }, [loaded]);
 

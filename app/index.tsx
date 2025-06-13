@@ -14,6 +14,8 @@ import { WidgetItem } from "@/components/WidgetItem";
 import { t } from "@/constants/i18n";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { widgetActions, widgetList } from "@/state/widget";
+import { trackEvent } from "@aptabase/react-native";
+import { usePostHog } from "posthog-react-native";
 
 // Define a global interface to add the widget refresh intervals type
 declare global {
@@ -22,6 +24,7 @@ declare global {
 
 const HomeScreen = observer(() => {
   const widgets = widgetList.get();
+  const posthog = usePostHog();
   const { searchText } = useLocalSearchParams<{ searchText: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -46,7 +49,10 @@ const HomeScreen = observer(() => {
   }, [widgets.length]);
 
   const handleAddWidget = () => {
-    // @ts-ignore - This route will be created
+    if (!__DEV__) {
+      posthog.capture("add_widget", { button: "empty_cta" });
+      trackEvent("add_widget", { button: "empty_cta" });
+    }
     router.push("/create-widget");
   };
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Datadget",
     "slug": "datadget",
-    "version": "0.0.31",
+    "version": "0.0.40",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "datadget",
@@ -57,7 +57,8 @@
             "deploymentTarget": "17.0"
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

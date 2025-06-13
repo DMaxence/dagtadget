@@ -14,6 +14,156 @@ struct WidgetData: Decodable {
     var refreshIntervalMs: Double? // Added refresh interval in milliseconds
 }
 
+// Helper to check iOS version
+@available(iOS 13.0, *)
+extension ProcessInfo {
+    var isIOS26OrLater: Bool {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }
+}
+
+// Liquid Glass Theme Styles
+struct LiquidGlassStyle {
+    static func apply(to view: some View, with color: Color?) -> some View {
+        if ProcessInfo.processInfo.isIOS26OrLater {
+            return AnyView(
+                view
+                    .background(
+                        ZStack {
+                            // Base glass layer
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.7)
+                            
+                            // Liquid glass gradient overlay
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            (color ?? .blue).opacity(0.3),
+                                            (color ?? .blue).opacity(0.1),
+                                            .white.opacity(0.2),
+                                            (color ?? .blue).opacity(0.2)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            
+                            // Liquid glass shimmer effect
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            .white.opacity(0.6),
+                                            .clear,
+                                            .white.opacity(0.3)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
+                    )
+                    .shadow(color: (color ?? .blue).opacity(0.3), radius: 10, x: 0, y: 5)
+                    .overlay(
+                        // Liquid glass highlight
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                            .blur(radius: 0.5)
+                    )
+            )
+        } else {
+            return AnyView(
+                view
+                    .background(color ?? Color(.systemBackground))
+            )
+        }
+    }
+    
+    static func applyAccessoryCircular(to view: some View, with color: Color?) -> some View {
+        if ProcessInfo.processInfo.isIOS26OrLater {
+            return AnyView(
+                view
+                    .background(
+                        ZStack {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.8)
+                            
+                            Circle()
+                                .fill(
+                                    RadialGradient(
+                                        colors: [
+                                            (color ?? .blue).opacity(0.4),
+                                            (color ?? .blue).opacity(0.1),
+                                            .white.opacity(0.3)
+                                        ],
+                                        center: .topLeading,
+                                        startRadius: 5,
+                                        endRadius: 25
+                                    )
+                                )
+                            
+                            Circle()
+                                .stroke(.white.opacity(0.5), lineWidth: 0.5)
+                        }
+                    )
+                    .shadow(color: (color ?? .blue).opacity(0.4), radius: 8, x: 0, y: 3)
+            )
+        } else {
+            return AnyView(
+                view
+                    .background(Color(.systemBackground).opacity(0.7))
+                    .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
+            )
+        }
+    }
+    
+    static func applyAccessoryRectangular(to view: some View, with color: Color?) -> some View {
+        if ProcessInfo.processInfo.isIOS26OrLater {
+            return AnyView(
+                view
+                    .background(
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.8)
+                            
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            (color ?? .blue).opacity(0.3),
+                                            .white.opacity(0.2),
+                                            (color ?? .blue).opacity(0.2)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                        }
+                    )
+                    .shadow(color: (color ?? .blue).opacity(0.3), radius: 6, x: 0, y: 3)
+            )
+        } else {
+            return AnyView(
+                view
+                    .background(Color(.systemBackground).opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            )
+        }
+    }
+}
+
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
         // For placeholder, show configuration prompt
@@ -196,126 +346,141 @@ struct widgetEntryView : View {
         .widgetURL(createDeepLinkURL())
     }
     
-    // Default view for systemSmall and other sizes
+    // Default view for systemSmall and other sizes with liquid glass theme
     private func defaultView(widgetData: WidgetData) -> some View {
-        VStack(alignment: .center, spacing: 0) {
-            HStack {
-                Text(widgetData.name)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .padding(.top, 16)
-                    .padding(.leading, 16)
-                
-                Spacer()
-            }
-            
-            Spacer()
-            
-            if let error = widgetData.lastError, !error.isEmpty {
-                // Show error state
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 24))
-                Text(NSLocalizedString("widget.error", comment: ""))
-                    .font(.caption)
-                    .foregroundColor(.white)
-            } else if let value = widgetData.value, !value.isEmpty {
-                // Format the value with prefix and suffix
-                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 16)
-            } else {
-                // Loading state
-                ProgressView()
-            }
-            
-            Spacer()
-            
-            if let lastFetched = widgetData.lastFetched {
+        let widgetColor = color(from: widgetData.color)
+        
+        return LiquidGlassStyle.apply(
+            to: VStack(alignment: .center, spacing: 0) {
                 HStack {
-                    Text(formattedDate(timeInterval: lastFetched))
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.8))
-                        .padding(.bottom, 16)
-                        .padding(.horizontal, 16)
+                    Text(widgetData.name)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .padding(.top, 16)
+                        .padding(.leading, 16)
+                    
                     Spacer()
                 }
+                
+                Spacer()
+                
+                if let error = widgetData.lastError, !error.isEmpty {
+                    // Show error state
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                    Text(NSLocalizedString("widget.error", comment: ""))
+                        .font(.caption)
+                        .foregroundColor(.white)
+                } else if let value = widgetData.value, !value.isEmpty {
+                    // Format the value with prefix and suffix
+                    Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 16)
+                } else {
+                    // Loading state
+                    ProgressView()
+                        .tint(.white)
+                }
+                
+                Spacer()
+                
+                if let lastFetched = widgetData.lastFetched {
+                    HStack {
+                        Text(formattedDate(timeInterval: lastFetched))
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.bottom, 16)
+                            .padding(.horizontal, 16)
+                        Spacer()
+                    }
+                }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(color(from: widgetData.color) ?? Color(.systemBackground))
+            .frame(maxWidth: .infinity, maxHeight: .infinity),
+            with: widgetColor
+        )
     }
     
-    // Circular accessory view
+    // Circular accessory view with liquid glass theme
     private func accessoryCircularView(widgetData: WidgetData) -> some View {
-        VStack(spacing: 1) {
-          Text(widgetData.name)
-                          .font(.system(size: 8))
-                          .foregroundColor(.white)
-                          .lineLimit(1)
-
-            if let error = widgetData.lastError, !error.isEmpty {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 14))
-                    .foregroundColor(.orange)
-            } else if let value = widgetData.value, !value.isEmpty {
-                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                    .font(.system(size: 16))
-                    .fontWeight(.semibold)
+        let widgetColor = color(from: widgetData.color)
+        
+        return LiquidGlassStyle.applyAccessoryCircular(
+            to: VStack(spacing: 1) {
+                Text(widgetData.name)
+                    .font(.system(size: 8))
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            } else {
-                ProgressView()
-                    .scaleEffect(0.7)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground).opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 50, style: .continuous))
-    }
-    
-    // Rectangular accessory view
-    private func accessoryRectangularView(widgetData: WidgetData) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(widgetData.name)
-                .font(.system(size: 14))
-                .fontWeight(.medium)
-                .foregroundColor(.white)
-                .lineLimit(1)
-            
-            if let error = widgetData.lastError, !error.isEmpty {
-                HStack {
+
+                if let error = widgetData.lastError, !error.isEmpty {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 14))
-                    Text(NSLocalizedString("widget.error", comment: ""))
-                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                } else if let value = widgetData.value, !value.isEmpty {
+                    Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                        .font(.system(size: 16))
+                        .fontWeight(.semibold)
                         .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                } else {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .tint(.white)
                 }
-            } else if let value = widgetData.value, !value.isEmpty {
-                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                    .font(.system(size: 22, weight: .bold))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity),
+            with: widgetColor
+        )
+    }
+    
+    // Rectangular accessory view with liquid glass theme
+    private func accessoryRectangularView(widgetData: WidgetData) -> some View {
+        let widgetColor = color(from: widgetData.color)
+        
+        return LiquidGlassStyle.applyAccessoryRectangular(
+            to: VStack(alignment: .leading, spacing: 1) {
+                Text(widgetData.name)
+                    .font(.system(size: 14))
+                    .fontWeight(.medium)
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            } else {
-                ProgressView()
+                
+                if let error = widgetData.lastError, !error.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
+                        Text(NSLocalizedString("widget.error", comment: ""))
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                    }
+                } else if let value = widgetData.value, !value.isEmpty {
+                    Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                } else {
+                    ProgressView()
+                        .tint(.white)
+                }
+                
+                if let lastFetched = widgetData.lastFetched {
+                    Text(formattedDate(timeInterval: lastFetched))
+                        .font(.system(size: 8))
+                        .foregroundColor(.white.opacity(0.8))
+                }
             }
-            
-            if let lastFetched = widgetData.lastFetched {
-                Text(formattedDate(timeInterval: lastFetched))
-                    .font(.system(size: 8))
-                    .foregroundColor(.white.opacity(0.8))
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(Color(.systemBackground).opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading),
+            with: widgetColor
+        )
     }
     
     // Helper to format the value with prefix and suffix
@@ -414,6 +579,37 @@ extension EnhancedWidgetConfigIntent {
             suffix: "", 
             color: "#4CAF50",
             value: "99.9",
+            lastFetched: Date().timeIntervalSince1970,
+            lastError: nil,
+            refreshIntervalMs: 300000
+        )
+    )
+
+    SimpleEntry(
+        date: .now, 
+        configuration: .preview,
+        widgetData: WidgetData(
+            id: "preview2", 
+            name: "API Status", 
+            prefix: "", 
+            suffix: "", 
+            color: "#4CAF50",
+            value: "Online",
+            lastFetched: Date().timeIntervalSince1970,
+            lastError: nil,
+            refreshIntervalMs: 300000
+        )
+    )
+    SimpleEntry(
+        date: .now, 
+        configuration: .preview,
+        widgetData: WidgetData(
+            id: "preview2", 
+            name: "Long Text API", 
+            prefix: "", 
+            suffix: "", 
+            color: "#4CAF50",
+            value: "This is a long text that should be wrapped",
             lastFetched: Date().timeIntervalSince1970,
             lastError: nil,
             refreshIntervalMs: 300000

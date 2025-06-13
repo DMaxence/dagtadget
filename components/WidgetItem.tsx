@@ -16,11 +16,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { t } from "@/constants/i18n";
 import { widgetActions, widgetState } from "@/state/widget";
 import { Widget } from "@/types/widget";
-import { COLOR_OPTIONS } from "./ColorSelector";
 import {
   calculateGrowthPercentage,
   formatGrowthPercentage,
 } from "@/utils/historyUtils";
+import { mixpanel } from "@/utils/mixpanel";
+import { supabase } from "@/utils/supabase";
+import { trackEvent } from "@aptabase/react-native";
+import { usePostHog } from "posthog-react-native";
+import { COLOR_OPTIONS } from "./ColorSelector";
 
 interface WidgetItemProps {
   widget: Widget;
@@ -28,6 +32,7 @@ interface WidgetItemProps {
 }
 
 export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
+  const posthog = usePostHog();
   const refreshing = useObservable(false);
   const textColor = "#ffffff";
   const secondaryTextColor = "rgba(255, 255, 255, 0.8)";
@@ -118,6 +123,24 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
     }
   };
 
+  const deleteWidget = async () => {
+    confirmDelete();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const userId = user?.id;
+    if (!userId) {
+      router.push("/create-widget");
+      return;
+    }
+    if (!__DEV__) {
+      posthog.capture("delete_widget", { userId: userId, button: "header" });
+      trackEvent("delete_widget", { userId: userId, button: "header" });
+      mixpanel.track("delete_widget", { userId: userId, button: "header" });
+    }
+    router.push("/create-widget");
+  };
+
   const handleOptionsPress = (event: any) => {
     event.stopPropagation();
 
@@ -166,7 +189,7 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
           },
           {
             text: "Delete",
-            onPress: () => confirmDelete(),
+            onPress: deleteWidget,
             style: "destructive",
           },
           {
@@ -297,7 +320,7 @@ export const WidgetItem = observer(({ widget, onPress }: WidgetItemProps) => {
       <View style={styles.middleSection}>
         <ThemedText
           style={[styles.value, { color: textColor }]}
-          numberOfLines={1}
+          // numberOfLines={2}
           adjustsFontSizeToFit={true}
           minimumFontScale={0.7}
           type="subtitle"
@@ -455,6 +478,7 @@ const styles = StyleSheet.create({
   },
   value: {
     textAlign: "center",
+    lineHeight: 20,
   },
   updatedAt: {
     textAlign: "left",

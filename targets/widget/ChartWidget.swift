@@ -23,6 +23,117 @@ struct ChartDataPoint: Decodable {
     var value: Double
 }
 
+// Helper to check iOS version for Chart Widget
+@available(iOS 13.0, *)
+extension ProcessInfo {
+    var isChartIOS26OrLater: Bool {
+        if #available(iOS 26.0, *) {
+            return true
+        } else {
+            return false
+        }
+    }
+}
+
+// Liquid Glass Theme Styles for Chart Widget
+struct ChartLiquidGlassStyle {
+    static func apply(to view: some View, with color: Color?) -> some View {
+        if ProcessInfo.processInfo.isChartIOS26OrLater {
+            return AnyView(
+                view
+                    .background(
+                        ZStack {
+                            // Base glass layer
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.7)
+                            
+                            // Liquid glass gradient overlay
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            (color ?? .blue).opacity(0.3),
+                                            (color ?? .blue).opacity(0.1),
+                                            .white.opacity(0.2),
+                                            (color ?? .blue).opacity(0.2)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            
+                            // Liquid glass shimmer effect
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            .white.opacity(0.6),
+                                            .clear,
+                                            .white.opacity(0.3)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
+                    )
+                    .shadow(color: (color ?? .blue).opacity(0.3), radius: 10, x: 0, y: 5)
+                    .overlay(
+                        // Liquid glass highlight
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                            .blur(radius: 0.5)
+                    )
+            )
+        } else {
+            return AnyView(
+                view
+                    .background(color ?? Color(.systemBackground))
+            )
+        }
+    }
+    
+    static func applyAccessoryRectangular(to view: some View, with color: Color?) -> some View {
+        if ProcessInfo.processInfo.isChartIOS26OrLater {
+            return AnyView(
+                view
+                    .background(
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.8)
+                            
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            (color ?? .blue).opacity(0.3),
+                                            .white.opacity(0.2),
+                                            (color ?? .blue).opacity(0.2)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                        }
+                    )
+                    .shadow(color: (color ?? .blue).opacity(0.3), radius: 6, x: 0, y: 3)
+            )
+        } else {
+            return AnyView(
+                view
+                    .background(Color(.systemBackground).opacity(0.7))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            )
+        }
+    }
+}
+
 struct ChartProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> ChartEntry {
         // For placeholder, show configuration prompt
@@ -241,159 +352,168 @@ struct chartWidgetEntryView : View {
         .widgetURL(createDeepLinkURL())
     }
     
-    // Chart view for accessoryRectangular widgets
+    // Chart view for accessoryRectangular widgets with liquid glass theme
     private func chartAccessoryRectangularView(widgetData: ChartWidgetData) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // Header row with name and growth
-            HStack {
-                Text(widgetData.name)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+        let widgetColor = color(from: widgetData.color)
+        
+        return ChartLiquidGlassStyle.applyAccessoryRectangular(
+            to: VStack(alignment: .leading, spacing: 2) {
+                // Header row with name and growth
+                HStack {
+                    Text(widgetData.name)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    // Growth indicator
+                    if let growthPercentage = widgetData.growthPercentage {
+                        HStack(spacing: 2) {
+                            Image(systemName: growthPercentage >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.system(size: 8))
+                                .foregroundColor(growthPercentage >= 0 ? .green : .red)
+                            
+                            Text("\(abs(growthPercentage), specifier: "%.1f")%")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundColor(growthPercentage >= 0 ? .green : .red)
+                        }
+                    }
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 10)
                 
-                Spacer()
-                
-                // Growth indicator
-                if let growthPercentage = widgetData.growthPercentage {
-                    HStack(spacing: 2) {
-                        Image(systemName: growthPercentage >= 0 ? "arrow.up" : "arrow.down")
+                // Main content
+                if let error = widgetData.lastError, !error.isEmpty {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text(NSLocalizedString("widget.error", comment: ""))
                             .font(.system(size: 8))
-                            .foregroundColor(growthPercentage >= 0 ? .green : .red)
-                        
-                        Text("\(abs(growthPercentage), specifier: "%.1f")%")
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(growthPercentage >= 0 ? .green : .red)
+                            .foregroundColor(.white)
+                    }
+                } else {
+                    // Value
+                    if let value = widgetData.value, !value.isEmpty {
+                        Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .padding(.horizontal, 8)
+                    }
+                    
+                    // Mini chart for rectangular accessory
+                    if let chartData = widgetData.chartData, chartData.count > 1 {
+                        miniChartView(data: chartData, contentColor: .white)
+                            .frame(height: 22)
+                    } else {
+                        // Show last updated if no chart data
+                        if let lastFetched = widgetData.lastFetched {
+                            Text(shortFormattedDate(timeInterval: lastFetched))
+                                .font(.system(size: 8))
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.horizontal, 8)
+                        }
+                    }
+                }
+                
+                if widgetData.lastError != nil || (widgetData.value?.isEmpty ?? true) {
+                    if widgetData.lastError == nil {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                            .tint(.white)
                     }
                 }
             }
-            .padding(.top, 8)
-            .padding(.horizontal, 8)
-            
-            // Main content
-            if let error = widgetData.lastError, !error.isEmpty {
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading),
+            with: widgetColor
+        )
+    }
+    
+    // Chart view for systemSmall and systemMedium widgets with liquid glass theme
+    private func chartSystemSmallView(widgetData: ChartWidgetData) -> some View {
+        let widgetColor = color(from: widgetData.color)
+        
+        return ChartLiquidGlassStyle.apply(
+            to: VStack(alignment: .leading, spacing: 4) {
+                // Header with name and growth
                 HStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 10))
-                        .foregroundColor(.orange)
-                    Text(NSLocalizedString("widget.error", comment: ""))
-                        .font(.system(size: 8))
+                    Text(widgetData.name)
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    if let growthPercentage = widgetData.growthPercentage {
+                        HStack(spacing: 2) {
+                            Image(systemName: growthPercentage >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.system(size: 10))
+                                .foregroundColor(growthPercentage >= 0 ? .green : .red)
+                            
+                            Text("\(abs(growthPercentage), specifier: "%.1f")%")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(growthPercentage >= 0 ? .green : .red)
+                        }
+                    }
                 }
-            } else {
-                // Value
-                if let value = widgetData.value, !value.isEmpty {
+
+                Spacer()
+                
+                // Main value
+                if let error = widgetData.lastError, !error.isEmpty {
+                    VStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 20))
+                            .foregroundColor(.orange)
+                        Text(NSLocalizedString("widget.error", comment: ""))
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                } else if let value = widgetData.value, !value.isEmpty {
                     Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 8)
-                }
-                
-                // Mini chart for rectangular accessory
-                if let chartData = widgetData.chartData, chartData.count > 1 {
-                    miniChartView(data: chartData)
-                        .frame(height: 20)
                 } else {
-                    // Show last updated if no chart data
-                    if let lastFetched = widgetData.lastFetched {
-                        Text(shortFormattedDate(timeInterval: lastFetched))
-                            .font(.system(size: 8))
-                            .foregroundColor(.white.opacity(0.6))
-                            .padding(.horizontal, 8)
-                    }
-                }
-            }
-            
-            if widgetData.lastError != nil || (widgetData.value?.isEmpty ?? true) {
-                if widgetData.lastError == nil {
                     ProgressView()
-                        .scaleEffect(0.5)
+                        .frame(maxWidth: .infinity)
+                        .tint(.white)
                 }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(.systemBackground).opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-    
-    // Chart view for systemSmall and systemMedium widgets
-    private func chartSystemSmallView(widgetData: ChartWidgetData) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Header with name and growth
-            HStack {
-                Text(widgetData.name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                
+
                 Spacer()
                 
-                if let growthPercentage = widgetData.growthPercentage {
-                    HStack(spacing: 2) {
-                        Image(systemName: growthPercentage >= 0 ? "arrow.up" : "arrow.down")
-                            .font(.system(size: 10))
-                            .foregroundColor(growthPercentage >= 0 ? .green : .red)
-                        
-                        Text("\(abs(growthPercentage), specifier: "%.1f")%")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(growthPercentage >= 0 ? .green : .red)
-                    }
+                // Chart
+                if let chartData = widgetData.chartData, chartData.count > 1 {
+                    miniChartView(data: chartData, contentColor: .white)
+                        .frame(height: 30)
+                } else {
+                    // Show placeholder if no chart data
+                    Text(NSLocalizedString("widget.noChartData", comment: ""))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(height: 30)
+                }
+                
+                // Last updated
+                if let lastFetched = widgetData.lastFetched {
+                    Text(formattedDate(timeInterval: lastFetched))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
                 }
             }
-
-            Spacer()
-            
-            // Main value
-            if let error = widgetData.lastError, !error.isEmpty {
-                VStack {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 20))
-                        .foregroundColor(.orange)
-                    Text(NSLocalizedString("widget.error", comment: ""))
-                        .font(.caption)
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity)
-            } else if let value = widgetData.value, !value.isEmpty {
-                Text(formatValue(value, prefix: widgetData.prefix, suffix: widgetData.suffix))
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-            }
-
-            Spacer()
-            
-            // Chart
-            if let chartData = widgetData.chartData, chartData.count > 1 {
-                miniChartView(data: chartData)
-                    .frame(height: 30)
-            } else {
-                // Show placeholder if no chart data
-                Text(NSLocalizedString("widget.noChartData", comment: ""))
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.5))
-                    .frame(height: 30)
-            }
-            
-            // Last updated
-            if let lastFetched = widgetData.lastFetched {
-                Text(formattedDate(timeInterval: lastFetched))
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.7))
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(color(from: widgetData.color) ?? Color(.systemBackground))
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading),
+            with: widgetColor
+        )
     }
     
-    // Mini chart view for displaying trend data
-    private func miniChartView(data: [ChartDataPoint]) -> some View {
+    // Mini chart view for displaying trend data with adaptive colors
+    private func miniChartView(data: [ChartDataPoint], contentColor: Color) -> some View {
         GeometryReader { geometry in
             let minValue = data.map { $0.value }.min() ?? 0
             let maxValue = data.map { $0.value }.max() ?? 1
@@ -426,7 +546,7 @@ struct chartWidgetEntryView : View {
                     path.addCurve(to: currentPoint, control1: controlPoint1, control2: controlPoint2)
                 }
             }
-            .stroke(Color.white.opacity(0.8), lineWidth: 2)
+            .stroke(contentColor.opacity(0.8), lineWidth: 2)
             
             // Add subtle gradient fill
             Path { path in
@@ -459,7 +579,7 @@ struct chartWidgetEntryView : View {
             }
             .fill(
                 LinearGradient(
-                    gradient: Gradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.02)]),
+                    gradient: Gradient(colors: [contentColor.opacity(0.2), contentColor.opacity(0.02)]),
                     startPoint: .top,
                     endPoint: .bottom
                 )

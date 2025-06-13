@@ -1,5 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
+import {
+  getDevice,
+  getLanguage,
+  getOs,
+  getRegion,
+  getTimeZone,
+  getVersion,
+} from "./device";
+import { logNewUser } from "./logsnag";
+import { supabase } from "./supabase";
 
 // Key for storing the first launch flag
 const FIRST_LAUNCH_KEY = "is_first_launch";
@@ -17,7 +27,9 @@ export const isNewUser = async (): Promise<string | null> => {
     if (value === null) {
       // Set the flag to indicate the app has been launched
       await AsyncStorage.setItem(FIRST_LAUNCH_KEY, "false");
-      return Crypto.randomUUID();
+      const userId = Crypto.randomUUID();
+      await AsyncStorage.setItem("userId", userId);
+      return userId;
     }
 
     // If the flag exists, this is not the first launch
@@ -39,4 +51,75 @@ export const resetNewUserFlag = async (): Promise<void> => {
   } catch (error) {
     console.error("Error resetting new user flag:", error);
   }
+};
+
+export const userMetadata = {
+  version: getVersion(),
+  os: getOs(),
+  device: getDevice() || "",
+  language: getLanguage(),
+  region: getRegion() || "",
+  timezone: getTimeZone() || "",
+};
+
+export const createUser = async () => {
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    console.error("Error signing in anonymously:", error);
+    return;
+  }
+  const userId = data.user?.id;
+  if (!userId) {
+    console.error("No user ID found");
+    return;
+  }
+  await supabase
+    .from("users")
+    .insert({
+      id: userId,
+      ...userMetadata,
+    })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating user:", error);
+  }
+
+  logNewUser(userId);
+};
+
+export const updateLastActivity = async () => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    console.error("No user found");
+    return;
+  }
+  const userId = user.id;
+  await supabase
+    .from("users")
+    .update({
+      last_active_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
+};
+
+export const updateWidgetCount = async (count: number) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    console.error("No user found");
+    return;
+  }
+  const userId = user.id;
+
+  await supabase
+    .from("users")
+    .update({
+      widget_count: count,
+      last_active_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
 };

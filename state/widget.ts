@@ -10,6 +10,7 @@ import {
   removeWidgetDataFromExtension,
   syncWidgetWithExtension,
 } from "@/utils/widgetUtils";
+import { updateWidgetCount } from "@/utils/userUtils";
 
 // Initial state
 interface WidgetState {
@@ -70,6 +71,7 @@ export const widgetActions = {
       updatedAt: now,
     });
 
+    updateWidgetCount(Object.keys(widgetState.widgets.peek()).length);
     return id;
   },
 
@@ -164,6 +166,7 @@ export const widgetActions = {
       widgetState.widgets[id].delete();
       removeWidgetDataFromExtension(id);
 
+      updateWidgetCount(Object.keys(widgetState.widgets.peek()).length);
       return true;
     }
     return false;
