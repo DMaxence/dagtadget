@@ -394,7 +394,7 @@ struct widgetEntryView : View {
                     HStack {
                         Text(formattedDate(timeInterval: lastFetched))
                             .font(.caption2)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.white)
                             .padding(.bottom, 16)
                             .padding(.horizontal, 16)
                         Spacer()
@@ -474,7 +474,7 @@ struct widgetEntryView : View {
                 if let lastFetched = widgetData.lastFetched {
                     Text(formattedDate(timeInterval: lastFetched))
                         .font(.system(size: 8))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white)
                 }
             }
             .padding(10)
