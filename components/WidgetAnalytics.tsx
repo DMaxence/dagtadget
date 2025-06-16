@@ -93,7 +93,7 @@ export const WidgetAnalytics: React.FC<WidgetAnalyticsProps> = ({ widget }) => {
                   <ThemedText style={[styles.metricLabel, { color: textColor }]}>
                     {period.label}
                   </ThemedText>
-                  <ThemedText 
+                  <ThemedText
                     style={[
                       styles.metricValue, 
                       { 

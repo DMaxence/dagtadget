@@ -30,22 +30,27 @@ import {
   Line as SvgLine,
   Text as SvgText,
 } from "react-native-svg";
+import { trackEvent } from "@aptabase/react-native";
+import { mixpanel } from "@/utils/mixpanel";
+import { usePostHog } from "posthog-react-native";
 
-type TimelineOption = '1h' | '24h' | '7days' | '30days';
+type TimelineOption = "1h" | "24h" | "7days" | "30days";
 
 const timelineHoursMap: Record<TimelineOption, number> = {
-  '1h': 1,
-  '24h': 24,
-  '7days': 168,
-  '30days': 720,
+  "1h": 1,
+  "24h": 24,
+  "7days": 168,
+  "30days": 720,
 };
 
 export default function WidgetScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const widget = useObservable(widgetState.widgets[id ?? ""]);
+  const posthog = usePostHog();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPullToRefresh, setIsPullToRefresh] = useState(false);
-  const [selectedTimeline, setSelectedTimeline] = useState<TimelineOption>('7days');
+  const [selectedTimeline, setSelectedTimeline] =
+    useState<TimelineOption>("7days");
 
   const backgroundColor = useThemeColor(
     { light: "#f8f9fa", dark: "#000000" },
@@ -71,14 +76,14 @@ export default function WidgetScreen() {
   // Get translated timeline labels
   const getTimelineLabel = (timeline: TimelineOption): string => {
     switch (timeline) {
-      case '1h':
-        return t('widget.timeline.1h');
-      case '24h':
-        return t('widget.timeline.24h');
-      case '7days':
-        return t('widget.timeline.7days');
-      case '30days':
-        return t('widget.timeline.30days');
+      case "1h":
+        return t("widget.timeline.1h");
+      case "24h":
+        return t("widget.timeline.24h");
+      case "7days":
+        return t("widget.timeline.7days");
+      case "30days":
+        return t("widget.timeline.30days");
       default:
         return timeline;
     }
@@ -90,6 +95,15 @@ export default function WidgetScreen() {
   const handleRefresh = useCallback(async () => {
     if (!id) return;
     setIsRefreshing(true);
+    posthog.capture("widget_refreshed", {
+      from: "widget_screen",
+      widgetId: id,
+    });
+    trackEvent("widget_refreshed", { from: "widget_screen", widgetId: id });
+    mixpanel.track("widget_refreshed", {
+      from: "widget_screen",
+      widgetId: id,
+    });
     try {
       await widgetActions.fetchWidgetData(id);
     } catch (error) {
@@ -186,25 +200,29 @@ export default function WidgetScreen() {
   const SimpleChart = ({ history }: { history: any[] }) => {
     // Group and average data by day for day-based timelines
     const processDataForTimeline = (data: any[], timeline: TimelineOption) => {
-      if (timeline !== '7days' && timeline !== '30days') {
+      if (timeline !== "7days" && timeline !== "30days") {
         return getChartData(data, timelineHoursMap[timeline]);
       }
 
       // For day-based timelines, group by day and calculate averages
-      const dayGroups = new Map<string, { values: number[], timestamps: number[] }>();
-      
-      data.forEach(point => {
+      const dayGroups = new Map<
+        string,
+        { values: number[]; timestamps: number[] }
+      >();
+
+      data.forEach((point) => {
         const date = new Date(point.timestamp);
         const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-        
+
         if (!dayGroups.has(dayKey)) {
           dayGroups.set(dayKey, { values: [], timestamps: [] });
         }
-        
-        const numericValue = typeof point.value === 'string' 
-          ? parseFloat(point.value.replace(/,/g, '.'))
-          : point.value;
-          
+
+        const numericValue =
+          typeof point.value === "string"
+            ? parseFloat(point.value.replace(/,/g, "."))
+            : point.value;
+
         if (!isNaN(numericValue)) {
           dayGroups.get(dayKey)!.values.push(numericValue);
           dayGroups.get(dayKey)!.timestamps.push(point.timestamp);
@@ -212,22 +230,29 @@ export default function WidgetScreen() {
       });
 
       // Convert groups to averaged data points
-      const averagedData = Array.from(dayGroups.entries()).map(([dayKey, group]) => {
-        const average = group.values.reduce((sum, val) => sum + val, 0) / group.values.length;
-        // Use the latest timestamp for the day
-        const latestTimestamp = Math.max(...group.timestamps);
-        
-        return {
-          value: average,
-          timestamp: latestTimestamp
-        };
-      });
+      const averagedData = Array.from(dayGroups.entries()).map(
+        ([dayKey, group]) => {
+          const average =
+            group.values.reduce((sum, val) => sum + val, 0) /
+            group.values.length;
+          // Round to 0 decimal places (whole numbers)
+          const roundedAverage = Math.round(average);
+          // Use the latest timestamp for the day
+          const latestTimestamp = Math.max(...group.timestamps);
+
+          return {
+            value: roundedAverage,
+            timestamp: latestTimestamp,
+          };
+        }
+      );
 
       // Sort by timestamp and filter by timeline hours
       const sortedData = averagedData.sort((a, b) => a.timestamp - b.timestamp);
-      const cutoffTime = Date.now() - (timelineHoursMap[timeline] * 60 * 60 * 1000);
-      
-      return sortedData.filter(point => point.timestamp >= cutoffTime);
+      const cutoffTime =
+        Date.now() - timelineHoursMap[timeline] * 60 * 60 * 1000;
+
+      return sortedData.filter((point) => point.timestamp >= cutoffTime);
     };
 
     const chartData = processDataForTimeline(history, selectedTimeline);
@@ -241,100 +266,122 @@ export default function WidgetScreen() {
     // Function to format x-axis labels based on timeline
     const getXAxisLabels = (data: any[], timeline: TimelineOption) => {
       if (data.length === 0) return [];
-      
+
       const labels: { index: number; label: string; show: boolean }[] = [];
-      
+
       // Get unique time periods from the data
       const getUniquePeriods = () => {
         const periods = new Map();
-        
+
         data.forEach((point, index) => {
           const date = new Date(point.timestamp);
-          let periodKey = '';
-          
+          let periodKey = "";
+
           switch (timeline) {
-            case '1h':
+            case "1h":
               // Group by 10-minute intervals
               const minutes = Math.floor(date.getMinutes() / 10) * 10;
-              periodKey = `${date.getHours()}:${minutes.toString().padStart(2, '0')}`;
+              periodKey = `${date.getHours()}:${minutes
+                .toString()
+                .padStart(2, "0")}`;
               break;
-            case '24h':
+            case "24h":
               // Group by hour
               periodKey = date.getHours().toString();
               break;
-            case '7days':
+            case "7days":
               // Group by day
               periodKey = date.toDateString();
               break;
-            case '30days':
+            case "30days":
               // Group by day
               periodKey = date.toDateString();
               break;
           }
-          
+
           if (!periods.has(periodKey) || index === data.length - 1) {
             periods.set(periodKey, index);
           }
         });
-        
+
         return Array.from(periods.values()).sort((a, b) => a - b);
       };
-      
+
       const uniquePeriodIndices = getUniquePeriods();
-      
+
       // Determine how many labels to show based on timeline and available data
       const getMaxLabels = () => {
         switch (timeline) {
-          case '1h': return Math.min(6, uniquePeriodIndices.length);
-          case '24h': return Math.min(6, uniquePeriodIndices.length);
-          case '7days': return Math.min(7, uniquePeriodIndices.length);
-          case '30days': return Math.min(8, uniquePeriodIndices.length);
-          default: return 6;
+          case "1h":
+            return Math.min(6, uniquePeriodIndices.length);
+          case "24h":
+            return Math.min(6, uniquePeriodIndices.length);
+          case "7days":
+            return Math.min(7, uniquePeriodIndices.length);
+          case "30days":
+            return Math.min(8, uniquePeriodIndices.length);
+          default:
+            return 6;
         }
       };
-      
+
       const maxLabels = getMaxLabels();
-      const step = Math.max(1, Math.floor(uniquePeriodIndices.length / maxLabels));
-      
+      const step = Math.max(
+        1,
+        Math.floor(uniquePeriodIndices.length / maxLabels)
+      );
+
       data.forEach((point, index) => {
         const date = new Date(point.timestamp);
-        let label = '';
+        let label = "";
         let show = false;
-        
+
         // Check if this index should show a label
         const isUniqueIndex = uniquePeriodIndices.includes(index);
         const uniquePosition = uniquePeriodIndices.indexOf(index);
-        const shouldShow = isUniqueIndex && (
-          uniquePosition % step === 0 || 
-          index === 0 || 
-          index === data.length - 1 ||
-          uniquePosition === uniquePeriodIndices.length - 1
-        );
-        
+        const shouldShow =
+          isUniqueIndex &&
+          (uniquePosition % step === 0 ||
+            index === 0 ||
+            index === data.length - 1 ||
+            uniquePosition === uniquePeriodIndices.length - 1);
+
         if (shouldShow) {
           switch (timeline) {
-            case '1h':
-              label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            case "1h":
+              label = date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
               show = true;
               break;
-            case '24h':
-              label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            case "24h":
+              label = date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
               show = true;
               break;
-            case '7days':
-              label = date.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+            case "7days":
+              label = date.toLocaleDateString([], {
+                weekday: "short",
+                day: "numeric",
+              });
               show = true;
               break;
-            case '30days':
-              label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            case "30days":
+              label = date.toLocaleDateString([], {
+                month: "short",
+                day: "numeric",
+              });
               show = true;
               break;
           }
         }
-        
+
         labels.push({ index, label, show });
       });
-      
+
       return labels;
     };
 
@@ -347,7 +394,7 @@ export default function WidgetScreen() {
           >
             {t("widget.chart.title")} ({getTimelineLabel(selectedTimeline)})
           </ThemedText>
-          <TimelineSelector 
+          <TimelineSelector
             selectedTimeline={selectedTimeline}
             onTimelineChange={setSelectedTimeline}
           />
@@ -378,7 +425,7 @@ export default function WidgetScreen() {
           >
             {t("widget.chart.title")} ({getTimelineLabel(selectedTimeline)})
           </ThemedText>
-          <TimelineSelector 
+          <TimelineSelector
             selectedTimeline={selectedTimeline}
             onTimelineChange={setSelectedTimeline}
           />
@@ -435,7 +482,9 @@ export default function WidgetScreen() {
       const normalizedValue =
         range > 0 ? (point.value - minValue) / chartRange : baselineY;
       const y =
-        chartHeight - bottomPadding - normalizedValue * (chartHeight - topPadding - bottomPadding);
+        chartHeight -
+        bottomPadding -
+        normalizedValue * (chartHeight - topPadding - bottomPadding);
 
       // Ensure coordinates are valid numbers
       const validX = isNaN(x) ? sidePadding : x;
@@ -461,7 +510,7 @@ export default function WidgetScreen() {
         >
           {t("widget.chart.title")} ({getTimelineLabel(selectedTimeline)})
         </ThemedText>
-        <TimelineSelector 
+        <TimelineSelector
           selectedTimeline={selectedTimeline}
           onTimelineChange={setSelectedTimeline}
         />
@@ -469,7 +518,8 @@ export default function WidgetScreen() {
           <Svg height={chartHeight} width={chartWidth}>
             {/* Grid lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
-              const y = topPadding + ratio * (chartHeight - topPadding - bottomPadding);
+              const y =
+                topPadding + ratio * (chartHeight - topPadding - bottomPadding);
               return (
                 <SvgLine
                   key={index}
@@ -507,21 +557,29 @@ export default function WidgetScreen() {
             {/* X-axis labels */}
             {xAxisLabels.map((labelData, labelIndex) => {
               if (!labelData.show) return null;
-              
+
               const point = points[labelData.index];
               if (!point) return null;
 
               // For day-based timelines, center labels more evenly
               let labelX = point.x;
-              const visibleLabels = xAxisLabels.filter(l => l.show);
-              const visibleLabelIndex = visibleLabels.findIndex(l => l.index === labelData.index);
-              
-              if (selectedTimeline === '7days' || selectedTimeline === '30days') {
+              const visibleLabels = xAxisLabels.filter((l) => l.show);
+              const visibleLabelIndex = visibleLabels.findIndex(
+                (l) => l.index === labelData.index
+              );
+
+              if (
+                selectedTimeline === "7days" ||
+                selectedTimeline === "30days"
+              ) {
                 const totalVisibleLabels = visibleLabels.length;
-                
+
                 if (totalVisibleLabels > 1) {
                   // Distribute labels evenly across chart width
-                  labelX = sidePadding + (visibleLabelIndex / (totalVisibleLabels - 1)) * (chartWidth - 2 * sidePadding);
+                  labelX =
+                    sidePadding +
+                    (visibleLabelIndex / (totalVisibleLabels - 1)) *
+                      (chartWidth - 2 * sidePadding);
                 } else {
                   // Single label: center it
                   labelX = chartWidth / 2;
@@ -531,11 +589,24 @@ export default function WidgetScreen() {
               return (
                 <SvgText
                   key={`x-label-${labelIndex}`}
-                  x={labelX + (visibleLabelIndex === 0 ? -10 : visibleLabelIndex === visibleLabels.length - 1 ? 10 : 0)}
+                  x={
+                    labelX +
+                    (visibleLabelIndex === 0
+                      ? -10
+                      : visibleLabelIndex === visibleLabels.length - 1
+                      ? 10
+                      : 0)
+                  }
                   y={chartHeight - 5}
                   fontSize="10"
                   fill={secondaryTextColor}
-                  textAnchor={visibleLabelIndex === 0 ? "start" : visibleLabelIndex === visibleLabels.length - 1 ? "end" : "middle"}
+                  textAnchor={
+                    visibleLabelIndex === 0
+                      ? "start"
+                      : visibleLabelIndex === visibleLabels.length - 1
+                      ? "end"
+                      : "middle"
+                  }
                 >
                   {labelData.label}
                 </SvgText>
@@ -547,23 +618,33 @@ export default function WidgetScreen() {
               const formattedValue = `${widgetData.prefix || ""}${formatValue(
                 point.value.toString()
               )}${widgetData.suffix || ""}`;
-              
+
               // Only show label if it's the first point or value is different from previous
-              const showLabel = index === 0 || point.value !== points[index - 1].value;
-              
+              const showLabel =
+                index === 0 || point.value !== points[index - 1].value;
+
               if (!showLabel) return null;
-              
+
               // Ensure text is always at least 15px from the top edge
               const textY = Math.max(point.y - 10, 15);
 
               return (
                 <SvgText
                   key={`label-${index}`}
-                  x={point.x + (index === 0 ? -10 : index === points.length - 1 ? 10 : 0)}
+                  x={
+                    point.x +
+                    (index === 0 ? -10 : index === points.length - 1 ? 10 : 0)
+                  }
                   y={textY}
                   fontSize="12"
                   fill={textColor}
-                  textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}
+                  textAnchor={
+                    index === 0
+                      ? "start"
+                      : index === points.length - 1
+                      ? "end"
+                      : "middle"
+                  }
                   fontWeight="600"
                 >
                   {formattedValue}
@@ -583,28 +664,39 @@ export default function WidgetScreen() {
     );
   };
 
-  const TimelineSelector = ({ 
-    selectedTimeline, 
-    onTimelineChange 
-  }: { 
-    selectedTimeline: TimelineOption; 
-    onTimelineChange: (timeline: TimelineOption) => void; 
+  const TimelineSelector = ({
+    selectedTimeline,
+    onTimelineChange,
+  }: {
+    selectedTimeline: TimelineOption;
+    onTimelineChange: (timeline: TimelineOption) => void;
   }) => {
-    const options: TimelineOption[] = ['1h', '24h', '7days', '30days'];
-    
+    const options: TimelineOption[] = ["1h", "24h", "7days", "30days"];
+
     return (
-      <View style={[
-        styles.timelineSelector,
-        { backgroundColor: useThemeColor({ light: "rgba(0, 0, 0, 0.05)", dark: "rgba(255, 255, 255, 0.1)" }, "background") }
-      ]}>
+      <View
+        style={[
+          styles.timelineSelector,
+          {
+            backgroundColor: useThemeColor(
+              {
+                light: "rgba(0, 0, 0, 0.05)",
+                dark: "rgba(255, 255, 255, 0.1)",
+              },
+              "background"
+            ),
+          },
+        ]}
+      >
         {options.map((option) => (
           <TouchableOpacity
             key={option}
             style={[
               styles.timelineOption,
               {
-                backgroundColor: selectedTimeline === option ? accentColor : 'transparent',
-              }
+                backgroundColor:
+                  selectedTimeline === option ? accentColor : "transparent",
+              },
             ]}
             onPress={() => onTimelineChange(option)}
           >
@@ -612,8 +704,8 @@ export default function WidgetScreen() {
               style={[
                 styles.timelineOptionText,
                 {
-                  color: selectedTimeline === option ? 'white' : textColor,
-                }
+                  color: selectedTimeline === option ? "white" : textColor,
+                },
               ]}
             >
               {getTimelineLabel(option)}
