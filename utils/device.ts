@@ -10,6 +10,10 @@ export const getOs = () => {
   return Device.osName?.toLowerCase() || 'unknown'
 }
 
+export const getOsVersion = () => {
+  return Device.osVersion || 'unknown'
+}
+
 export const getLanguage = () => {
   return getLocales()[0].languageTag
 }

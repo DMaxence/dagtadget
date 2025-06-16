@@ -37,6 +37,7 @@ export const frTranslations = {
   "widget.create.iconLabel": "Icône",
   "widget.create.errorSaving": "Échec de l'enregistrement du widget",
   "widget.create.errorDeleting": "Échec de la suppression du widget",
+  "widget.error": "Échec de la récupération des données de l'API. Veuillez vérifier l'URL et réessayer.",
 
   // Widget view
   "widget.lastUpdated": "Dernière mise à jour",

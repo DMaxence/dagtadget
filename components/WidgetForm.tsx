@@ -84,6 +84,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [fetchError, setFetchError] = useState("");
 
     // Timer ref for debounced fetch
     const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,7 +134,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       "tint"
     );
 
-    const isFormValid = name.trim() !== "" && dataSourceUrl.trim() !== "";
+    const isFormValid = name.trim() !== "" && dataSourceUrl.trim() !== "" && jsonPath.trim() !== "";
 
     // Notify parent component about form validity state
     useEffect(() => {
@@ -183,6 +184,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       if (!dataSourceUrl) return;
 
       setIsLoadingApiData(true);
+      setFetchError(""); // Clear any previous errors
       try {
         // Convert headers array to object format for fetch
         const headerObj = headers.reduce((acc, { key, value }) => {
@@ -209,6 +211,7 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
       } catch (error) {
         console.error("Error fetching API data:", error);
         setApiResponseData(null);
+        setFetchError(t("widget.error"));
       } finally {
         setIsLoadingApiData(false);
       }
@@ -462,6 +465,12 @@ export const WidgetForm = forwardRef<WidgetFormHandles, WidgetFormProps>(
           <View style={styles.loadingIndicator}>
             <ActivityIndicator size="small" color={accentColor} />
             <ThemedText style={styles.loadingText}>{t("loading.fetchingData")}</ThemedText>
+          </View>
+        )}
+        {fetchError && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={16} color={deleteColor} />
+            <ThemedText style={[styles.errorText, { marginLeft: 8 }]}>{fetchError}</ThemedText>
           </View>
         )}
 
@@ -1002,5 +1011,10 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     opacity: 0.7,
     marginBottom: 8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });

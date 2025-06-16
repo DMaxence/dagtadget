@@ -4,6 +4,7 @@ import {
   getDevice,
   getLanguage,
   getOs,
+  getOsVersion,
   getRegion,
   getTimeZone,
   getVersion,
@@ -56,6 +57,7 @@ export const resetNewUserFlag = async (): Promise<void> => {
 export const userMetadata = {
   version: getVersion(),
   os: getOs(),
+  os_version: getOsVersion(),
   device: getDevice() || "",
   language: getLanguage(),
   region: getRegion() || "",
@@ -101,6 +103,7 @@ export const updateLastActivity = async () => {
     .from("users")
     .update({
       last_active_at: new Date().toISOString(),
+      ...userMetadata,
     })
     .eq("id", userId);
 };

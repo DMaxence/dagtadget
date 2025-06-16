@@ -37,6 +37,7 @@ export const enTranslations = {
   "widget.create.iconLabel": "Icon",
   "widget.create.errorSaving": "Failed to save widget",
   "widget.create.errorDeleting": "Failed to delete widget",
+  "widget.error": "Failed to fetch data from API. Please check the URL and try again.",
 
   // Widget view
   "widget.lastUpdated": "Last updated",

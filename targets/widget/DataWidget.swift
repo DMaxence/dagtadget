@@ -19,7 +19,7 @@ struct WidgetData: Decodable {
 extension ProcessInfo {
     var isIOS26OrLater: Bool {
         let version = ProcessInfo.processInfo.operatingSystemVersion
-        return version.majorVersion >= 26
+        return version.majorVersion > 18
     }
 }
 
@@ -130,15 +130,15 @@ struct LiquidGlassStyle {
                         ZStack {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(.ultraThinMaterial)
-                                .opacity(0.8)
+                                .opacity(0.4)
                             
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            (color ?? .blue).opacity(0.3),
-                                            .white.opacity(0.2),
-                                            (color ?? .blue).opacity(0.2)
+                                            (color ?? .blue).opacity(0.15),
+                                            .white.opacity(0.1),
+                                            (color ?? .blue).opacity(0.1)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -146,10 +146,10 @@ struct LiquidGlassStyle {
                                 )
                             
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                                .stroke(.white.opacity(0.2), lineWidth: 0.5)
                         }
                     )
-                    .shadow(color: (color ?? .blue).opacity(0.3), radius: 6, x: 0, y: 3)
+                    .shadow(color: (color ?? .blue).opacity(0.15), radius: 6, x: 0, y: 3)
             )
         } else {
             return AnyView(
