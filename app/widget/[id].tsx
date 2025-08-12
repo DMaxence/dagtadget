@@ -95,15 +95,17 @@ export default function WidgetScreen() {
   const handleRefresh = useCallback(async () => {
     if (!id) return;
     setIsRefreshing(true);
-    posthog.capture("widget_refreshed", {
-      from: "widget_screen",
-      widgetId: id,
-    });
-    trackEvent("widget_refreshed", { from: "widget_screen", widgetId: id });
-    mixpanel.track("widget_refreshed", {
-      from: "widget_screen",
-      widgetId: id,
-    });
+    if (!__DEV__) {
+      posthog.capture("widget_refreshed", {
+        from: "widget_screen",
+        widgetId: id,
+      });
+      trackEvent("widget_refreshed", { from: "widget_screen", widgetId: id });
+      mixpanel.track("widget_refreshed", {
+        from: "widget_screen",
+        widgetId: id,
+      });
+    }
     try {
       await widgetActions.fetchWidgetData(id);
     } catch (error) {
